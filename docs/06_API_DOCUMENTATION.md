@@ -249,40 +249,6 @@ POST
 
 ---
 
-# WOMEN'S SAFETY
-
-GET
-
-/api/safety
-
-Return
-
-Safety Resources
-
-Emergency Numbers
-
-Organizations
-
----
-
-POST
-
-/api/safety/search
-
-Search safety topics.
-
----
-
-GET
-
-/api/safety/nearby
-
-Purpose
-
-Return nearby police stations or emergency services if location permission is granted.
-
----
-
 # CAREER
 
 GET
