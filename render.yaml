@@ -1,29 +1,68 @@
 services:
   - type: web
     name: herguardian-backend
-    env: node
-    root: backend
+    runtime: node
+    rootDir: backend
     branch: main
     plan: free
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: FROM_NAME
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: ADZUNA_APP_ID
+        sync: false
+      - key: ADZUNA_APP_KEY
+        sync: false
+      - key: JOOBLE_API_KEY
+        sync: false
+      - key: RAPIDAPI_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
 
   # NutriBot — IBM Watsonx.ai nutrition service (Flask) used by the
   # HerGuardian frontend's Wellness Hub → Nutrition AI section.
-  # Set IBM_API_KEY, IBM_PROJECT_ID, IBM_WATSONX_URL, WATSONX_MODEL_ID,
-  # FLASK_SECRET_KEY and CORS_ORIGINS in this service's environment panel.
   - type: web
     name: herguardian-nutrition
-    env: python
-    root: nutrition bot
+    runtime: python
+    rootDir: nutrition bot
     branch: main
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
     healthCheckPath: /api/health
     envVars:
-      - key: FLASK_PORT
-        value: 5001
-      - key: FLASK_DEBUG
-        value: "False"
+      - key: IBM_API_KEY
+        sync: false
+      - key: IBM_PROJECT_ID
+        sync: false
+      - key: IBM_WATSONX_URL
+        sync: false
+      - key: WATSONX_MODEL_ID
+        sync: false
+      - key: FLASK_SECRET_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
