@@ -5,12 +5,14 @@ node_modules/
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
 
 # VS Code
 .vscode/
@@ -21,6 +23,7 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+.DS_Store
 
 # Build outputs
 dist/
@@ -32,15 +35,16 @@ backend/node_modules/
 frontend/package-lock.json
 backend/package-lock.json
 
-# Misc
-*.log
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
-report.*
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+"nutrition bot/venv/"
 
-# Local settings
-.env
-*.local
+# Misc
+report.*
 nul
 
