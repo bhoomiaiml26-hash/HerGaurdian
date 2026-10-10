@@ -1,22 +1,18 @@
 import { motion } from 'framer-motion';
 import {
   ShieldAlert,
-  Users,
   FileText,
-  BookmarkCheck,
   Search,
   Scale,
   PhoneCall,
   ArrowRight,
-  CheckCircle2,
-  Lock,
   MessageSquare,
   HelpCircle,
   FileCheck
 } from 'lucide-react';
 import { verifiedHelplines } from '../../../data/rightsDirectoryData';
 
-export default function CommunityHomeTab({ onSelectTab, casesCount = 0, recentCases = [] }) {
+export default function CommunityHomeTab({ onSelectTab }) {
   return (
     <div className="space-y-8">
       {/* Hero Banner */}
@@ -31,7 +27,7 @@ export default function CommunityHomeTab({ onSelectTab, casesCount = 0, recentCa
               Community &amp; Rights Support Centre
             </h1>
             <p className="text-xs sm:text-sm leading-relaxed text-[#4F4A45]">
-              Understand your rights under verified statutory laws, draft formal complaints with step-by-step guidance, track personal cases in an encrypted workspace, and exchange mutual support with peers.
+              Understand your rights under verified statutory laws and draft formal complaints with clear, step-by-step guidance.
             </p>
           </div>
 
@@ -67,7 +63,7 @@ export default function CommunityHomeTab({ onSelectTab, casesCount = 0, recentCa
         <h2 className="font-serif text-lg font-bold text-[#1E1B18] mb-4">
           How can we support you today?
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {/* Action 1 */}
           <motion.div
             whileHover={{ y: -3 }}
@@ -137,121 +133,17 @@ export default function CommunityHomeTab({ onSelectTab, casesCount = 0, recentCa
             </div>
           </motion.div>
 
-          {/* Action 4 */}
-          <motion.div
-            whileHover={{ y: -3 }}
-            onClick={() => onSelectTab('circles')}
-            className="cursor-pointer rounded-xl border border-[#EDE6E2] bg-white p-5 shadow-xs hover:border-[#8C3737]/40 transition-all flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F6EFEA] text-[#8C3737] mb-3">
-                <Users className="h-5 w-5" />
-              </div>
-              <h3 className="font-serif text-base font-semibold text-[#1E1B18]">
-                Community Support Circles
-              </h3>
-              <p className="mt-1 text-xs text-[#78726B] leading-relaxed">
-                Join safe, moderated discussions with peers on student life, career, and personal safety.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#EDE6E2] flex items-center text-xs font-semibold text-[#8C3737]">
-              <span>Visit Circles</span>
-              <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </div>
-          </motion.div>
         </div>
       </div>
 
-      {/* Personal Case Tracker Snapshot & Features Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left 2 Cols: My Cases & Action Plans */}
-        <div className="lg:col-span-2 rounded-2xl border border-[#EDE6E2] bg-white p-6 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-4 border-b border-[#EDE6E2]">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F6EFEA] text-[#8C3737]">
-                  <BookmarkCheck className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="font-serif text-base font-bold text-[#1E1B18]">
-                    My Private Cases &amp; Action Plans
-                  </h3>
-                  <p className="text-xs text-[#78726B]">
-                    Strictly confidential to your account. Never posted to community.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => onSelectTab('tracker')}
-                className="text-xs font-semibold text-[#8C3737] hover:underline flex items-center gap-1"
-              >
-                <span>View All ({casesCount})</span>
-                <ArrowRight className="h-3 w-3" />
-              </button>
-            </div>
-
-            {/* Cases Content */}
-            <div className="mt-4">
-              {recentCases.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#EDE6E2] bg-[#FBF9F7] p-6 text-center">
-                  <Lock className="mx-auto h-8 w-8 text-[#A8A29E] mb-2" />
-                  <p className="text-xs font-semibold text-[#1E1B18]">No Active Cases Yet</p>
-                  <p className="mt-1 text-xs text-[#78726B] max-w-sm mx-auto">
-                    Use the Rights Assistant or Complaint Builder to save structured action plans and private task checklists.
-                  </p>
-                  <button
-                    onClick={() => onSelectTab('tracker')}
-                    className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-[#8C3737] px-4 py-2 text-xs font-semibold text-white hover:bg-[#752B2B] transition-colors"
-                  >
-                    Open Case Tracker
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentCases.slice(0, 3).map((c) => (
-                    <div
-                      key={c._id}
-                      onClick={() => onSelectTab('tracker')}
-                      className="cursor-pointer rounded-xl border border-[#EDE6E2] bg-[#FBF9F7] p-3.5 hover:border-[#8C3737]/40 transition-colors flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="text-xs font-semibold text-[#1E1B18]">{c.title}</p>
-                        <div className="mt-1 flex items-center gap-2 text-[11px] text-[#78726B]">
-                          <span className="capitalize">{c.category}</span>
-                          <span>•</span>
-                          <span>{c.tasks?.length || 0} Tasks</span>
-                        </div>
-                      </div>
-                      <span className="rounded-md bg-white border border-[#EDE6E2] px-2.5 py-1 text-[10px] font-semibold text-[#8C3737] uppercase tracking-wider">
-                        {c.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-[#EDE6E2] flex flex-wrap items-center justify-between gap-3 text-xs text-[#78726B]">
-            <span className="inline-flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#286646]" /> Zero public exposure
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#286646]" /> Milestone reminders
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5 text-[#286646]" /> Evidence checklist
-            </span>
-          </div>
-        </div>
-
-        {/* Right Col: Interactive Utilities */}
+      {/* Interactive Utilities */}
+      <div className="grid gap-6">
         <div className="rounded-2xl border border-[#EDE6E2] bg-white p-6 shadow-xs flex flex-col justify-between">
-          <div className="space-y-4">
-            <h3 className="font-serif text-base font-bold text-[#1E1B18]">
-              Interactive Tool Suites
-            </h3>
-            
+          <h3 className="font-serif text-base font-bold text-[#1E1B18]">
+            Interactive Tool Suites
+          </h3>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div
               onClick={() => onSelectTab('navigator')}
               className="cursor-pointer rounded-xl border border-[#EDE6E2] bg-[#FBF9F7] p-3.5 hover:border-[#8C3737]/40 transition-all flex items-start gap-3"

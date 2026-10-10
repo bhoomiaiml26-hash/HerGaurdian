@@ -5,8 +5,6 @@ import {
   LayoutDashboard,
   Scale,
   FileText,
-  BookmarkCheck,
-  Users,
   Search,
   FileCheck,
   HelpCircle,
@@ -15,14 +13,11 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { getSupportCases } from '../../services/communityService';
 
 // Modular Sub-tabs
 import CommunityHomeTab from './components/CommunityHomeTab';
 import RightsAssistantTab from './components/RightsAssistantTab';
 import ComplaintBuilderTab from './components/ComplaintBuilderTab';
-import CaseTrackerTab from './components/CaseTrackerTab';
-import SupportCirclesTab from './components/SupportCirclesTab';
 import FindHelpTab from './components/FindHelpTab';
 import EligibilityNavigatorTab from './components/EligibilityNavigatorTab';
 import DocumentDecoderTab from './components/DocumentDecoderTab';
@@ -33,8 +28,6 @@ const tabs = [
   { id: 'dashboard', label: 'Home Dashboard', icon: LayoutDashboard },
   { id: 'assistant', label: 'Rights Assistant', icon: Scale },
   { id: 'complaint', label: 'Complaint Builder', icon: FileText },
-  { id: 'tracker', label: 'My Cases & Tasks', icon: BookmarkCheck },
-  { id: 'circles', label: 'Support Circles', icon: Users },
   { id: 'directory', label: 'Find Help Directory', icon: Search },
   { id: 'navigator', label: 'Eligibility Navigator', icon: FileCheck },
   { id: 'decoder', label: 'Document Decoder', icon: HelpCircle },
@@ -44,9 +37,10 @@ const tabs = [
 
 export default function CommunityHub() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'dashboard';
+  // Validate the requested tab so stale/unknown links (e.g. ?tab=tracker) fall back to the dashboard
+  const requestedTab = searchParams.get('tab');
+  const currentTab = tabs.some((tab) => tab.id === requestedTab) ? requestedTab : 'dashboard';
 
-  const [cases, setCases] = useState([]);
   const [passedComplaintCategory, setPassedComplaintCategory] = useState('posh');
   const [passedComplaintFacts, setPassedComplaintFacts] = useState('');
 
@@ -55,21 +49,6 @@ export default function CommunityHub() {
   const [canScrollRight, setCanScrollRight] = useState(false);
   const navRef = useRef(null);
   const tabRefs = useRef({});
-
-  // Fetch private cases count & recent list for dashboard
-  useEffect(() => {
-    const fetchCases = async () => {
-      try {
-        const res = await getSupportCases();
-        if (res.success) {
-          setCases(res.cases || []);
-        }
-      } catch (_err) {
-        // Not authenticated or network error; cases remain empty
-      }
-    };
-    fetchCases();
-  }, []);
 
   // Check scroll position to dynamically show/hide scroll buttons and edge indicators
   const checkScroll = useCallback(() => {
@@ -196,10 +175,6 @@ export default function CommunityHub() {
     handleSelectTab('complaint');
   };
 
-  const handleCaseCreated = (newCase) => {
-    setCases((prev) => [newCase, ...prev]);
-  };
-
   return (
     <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] pb-16 w-full max-w-full">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 w-full min-w-0">
@@ -259,15 +234,6 @@ export default function CommunityHub() {
                   >
                     <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-[#8C3737]'}`} />
                     <span>{tab.label}</span>
-                    {tab.id === 'tracker' && cases.length > 0 && (
-                      <span
-                        className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                          isActive ? 'bg-white text-[#8C3737]' : 'bg-[#F6EFEA] text-[#8C3737]'
-                        }`}
-                      >
-                        {cases.length}
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -308,18 +274,11 @@ export default function CommunityHub() {
             transition={{ duration: 0.18 }}
           >
             {currentTab === 'dashboard' && (
-              <CommunityHomeTab
-                onSelectTab={handleSelectTab}
-                casesCount={cases.length}
-                recentCases={cases}
-              />
+              <CommunityHomeTab onSelectTab={handleSelectTab} />
             )}
 
             {currentTab === 'assistant' && (
-              <RightsAssistantTab
-                onSwitchToComplaint={handleSwitchToComplaint}
-                onCaseCreated={handleCaseCreated}
-              />
+              <RightsAssistantTab onSwitchToComplaint={handleSwitchToComplaint} />
             )}
 
             {currentTab === 'complaint' && (
@@ -329,16 +288,10 @@ export default function CommunityHub() {
               />
             )}
 
-            {currentTab === 'tracker' && (
-              <CaseTrackerTab onCasesChanged={setCases} />
-            )}
-
-            {currentTab === 'circles' && <SupportCirclesTab />}
-
             {currentTab === 'directory' && <FindHelpTab />}
 
             {currentTab === 'navigator' && (
-              <EligibilityNavigatorTab onCaseCreated={handleCaseCreated} />
+              <EligibilityNavigatorTab />
             )}
 
             {currentTab === 'decoder' && <DocumentDecoderTab />}

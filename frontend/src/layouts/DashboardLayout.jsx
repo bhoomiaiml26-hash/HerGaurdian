@@ -17,18 +17,16 @@ import {
   Plus,
   Minus,
   Users,
-
-  MapPin,
   ShieldCheck,
   Wallet,
   ScanSearch
 } from "lucide-react";
 import toast from "react-hot-toast";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 
 const navItems = [
   { label: "Overview", path: "/dashboard", icon: LayoutDashboard },
   { label: "Emergency SOS", path: "/emergency", icon: ShieldAlert },
-  { label: "Safe Route", path: "/safe-route", icon: MapPin },
   { label: "Digital Safety Analyzer", path: "/safety-analyzer", icon: ShieldCheck },
   { label: "Footprint Scanner",       path: "/footprint-scanner", icon: ScanSearch },
   { label: "Wellness Hub",            path: "/wellness",          icon: HeartPulse },
@@ -76,14 +74,13 @@ function DashboardLayout() {
 
   const currentNav = navItems.find(item => item.path === location.pathname ||
     (item.path === "/wellness" && location.pathname.startsWith("/wellness")) ||
-    (item.path === "/safe-route" && location.pathname.startsWith("/safe-route")) ||
     (item.path === "/safety-analyzer" && location.pathname.startsWith("/safety-analyzer")) ||
     (item.path === "/financial-coach" && location.pathname.startsWith("/financial-coach")) ||
     (item.path === "/footprint-scanner" && location.pathname.startsWith("/footprint-scanner")) ||
     (item.path === "/community" && location.pathname.startsWith("/community"))
   );
   
-  // Handle Wellness Hub, Safe Route, and Community & Rights page titles
+  // Handle Wellness Hub and Community & Rights page titles
   const getPageTitle = () => {
     if (location.pathname === "/wellness" || location.pathname.startsWith("/wellness")) {
       const searchParams = new URLSearchParams(location.search);
@@ -106,8 +103,6 @@ function DashboardLayout() {
         "dashboard": "Community & Rights Hub",
         "assistant": "Rights Action Assistant",
         "complaint": "Complaint & Letter Builder",
-        "tracker": "Personal Case & Action Tracker",
-        "circles": "Community Support Circles",
         "directory": "Find Help & Support Directory",
         "navigator": "Rights & Support Eligibility",
         "decoder": "Document Decoder",
@@ -153,7 +148,6 @@ function DashboardLayout() {
             const Icon = item.icon;
             const isActive = location.pathname === item.path ||
               (item.path === "/wellness" && location.pathname.startsWith("/wellness")) ||
-              (item.path === "/safe-route" && location.pathname.startsWith("/safe-route")) ||
               (item.path === "/safety-analyzer" && location.pathname.startsWith("/safety-analyzer")) ||
               (item.path === "/financial-coach" && location.pathname.startsWith("/financial-coach")) ||
               (item.path === "/footprint-scanner" && location.pathname.startsWith("/footprint-scanner"));
@@ -241,7 +235,9 @@ function DashboardLayout() {
 
         {/* Page Content Outlet */}
         <main className="flex-1 p-6 sm:p-8">
-          <Outlet />
+          <ErrorBoundary key={location.pathname + location.search}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

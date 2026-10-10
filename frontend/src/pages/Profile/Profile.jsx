@@ -6,7 +6,6 @@ import {
   ArrowRight,
   LayoutDashboard,
   ShieldAlert,
-  MapPin,
   ShieldCheck,
   ScanSearch,
   HeartPulse,
@@ -36,7 +35,6 @@ const defaultUser = {
 const navigationItems = [
   { label: "Overview", path: "/dashboard", icon: LayoutDashboard },
   { label: "Emergency SOS", path: "/emergency", icon: ShieldAlert },
-  { label: "Safe Route", path: "/safe-route", icon: MapPin },
   { label: "Digital Safety Analyzer", path: "/safety-analyzer", icon: ShieldCheck },
   { label: "Footprint Scanner", path: "/footprint-scanner", icon: ScanSearch },
   { label: "Wellness Hub", path: "/wellness", icon: HeartPulse },

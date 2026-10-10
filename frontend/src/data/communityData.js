@@ -4,7 +4,7 @@ export const emergencyHelplines = [
     id: 1,
     name: "Women Helpline",
     description: "24/7 support for women in distress",
-    phone: "+91-181",
+    phone: "181",
     icon: "PhoneIcon",
     color: "bg-[#8C3737]"
   },
@@ -42,95 +42,51 @@ export const emergencyHelplines = [
   }
 ];
 
-// Nearby Support Resources (placeholder data for Maps integration)
+// Nearby Support Resources (SAMPLE DATA for Maps integration - replace with real data in production)
 export const supportResources = [
   {
     id: 1,
-    name: "Apollo Hospitals",
+    name: "Sample Hospital (Demo)",
     category: "Hospital",
-    address: "Plot No 251, Opp. Rajendra Vihar Apartments, Delhi",
-    distance: "2.5 km",
-    rating: 4.8,
-    phone: "+91-11-XXXX-XXXX",
+    address: "Sample address for demo purposes",
+    distance: "Sample",
+    rating: null,
+    phone: "Contact via directory",
     lat: 28.5355,
     lng: 77.3910
   },
   {
     id: 2,
-    name: "Fortis Hospital",
-    category: "Hospital",
-    address: "Sector 62, Noida, Uttar Pradesh",
-    distance: "3.2 km",
-    rating: 4.7,
-    phone: "+91-120-XXXX-XXXX",
+    name: "Sample Clinic (Demo)",
+    category: "Gynecologist",
+    address: "Sample address for demo purposes",
+    distance: "Sample",
+    rating: null,
+    phone: "Contact via directory",
     lat: 28.5746,
     lng: 77.3560
   },
   {
     id: 3,
-    name: "Dr. Sarah Women's Clinic",
-    category: "Gynecologist",
-    address: "Green Park, New Delhi",
-    distance: "1.8 km",
-    rating: 4.9,
-    phone: "+91-11-XXXX-XXXX",
+    name: "Sample NGO (Demo)",
+    category: "NGO",
+    address: "Sample address for demo purposes",
+    distance: "Sample",
+    rating: null,
+    phone: "Contact via directory",
     lat: 28.5494,
     lng: 77.1959
   },
   {
     id: 4,
-    name: "Women's Health Center",
-    category: "Gynecologist",
-    address: "Karol Bagh, New Delhi",
-    distance: "2.1 km",
-    rating: 4.6,
-    phone: "+91-11-XXXX-XXXX",
+    name: "Sample Mental Health Center (Demo)",
+    category: "Mental Health",
+    address: "Sample address for demo purposes",
+    distance: "Sample",
+    rating: null,
+    phone: "Contact via directory",
     lat: 28.6328,
     lng: 77.1892
-  },
-  {
-    id: 5,
-    name: "Women Empowerment NGO",
-    category: "NGO",
-    address: "South Delhi, New Delhi",
-    distance: "3.5 km",
-    rating: 4.5,
-    phone: "+91-11-XXXX-XXXX",
-    lat: 28.5244,
-    lng: 77.1855
-  },
-  {
-    id: 6,
-    name: "Mental Wellness Counseling Center",
-    category: "Mental Health",
-    address: "Vasant Kunj, New Delhi",
-    distance: "2.8 km",
-    rating: 4.7,
-    phone: "+91-11-XXXX-XXXX",
-    lat: 28.5244,
-    lng: 77.1993
-  },
-  {
-    id: 7,
-    name: "Red Cross Blood Bank",
-    category: "Blood Bank",
-    address: "Patel Nagar, New Delhi",
-    distance: "1.5 km",
-    rating: 4.8,
-    phone: "+91-11-XXXX-XXXX",
-    lat: 28.6469,
-    lng: 77.2093
-  },
-  {
-    id: 8,
-    name: "City Blood Bank",
-    category: "Blood Bank",
-    address: "Lajpat Nagar, New Delhi",
-    distance: "2.3 km",
-    rating: 4.6,
-    phone: "+91-11-XXXX-XXXX",
-    lat: 28.5609,
-    lng: 77.2367
   }
 ];
 
@@ -218,7 +174,7 @@ export const communityFAQs = [
     id: 14,
     category: "Emergency Safety",
     question: "What should I do if I'm experiencing domestic violence?",
-    answer: "If you're in immediate danger, call emergency services (100 or 112). Contact the Women Helpline (+91-181) for confidential support. Safe houses and legal aid are available. You're not alone."
+    answer: "If you're in immediate danger, call emergency services (100 or 112). Contact the Women Helpline (181) for confidential support. Safe houses and legal aid are available. You're not alone."
   },
   {
     id: 15,
@@ -294,17 +250,17 @@ export const trustedResources = [
   },
   {
     id: 5,
-    name: "Stop It Now",
-    description: "Global platform for women's safety information, resources, and support networks.",
-    website: "https://www.stopitnow.org",
+    name: "National Commission for Women (NCW)",
+    description: "Statutory body for women's rights in India, providing grievance redressal and legal support.",
+    website: "https://ncw.nic.in",
     icon: "ShieldAlert",
     color: "bg-[#BA2626]"
   },
   {
     id: 6,
-    name: "Women Rights Organization",
-    description: "Comprehensive resources for women's rights, legal aid, and empowerment initiatives.",
-    website: "https://www.womensrights.org",
+    name: "National Cyber Crime Reporting Portal",
+    description: "Official Indian government portal for reporting cyber crimes and online harassment.",
+    website: "https://cybercrime.gov.in",
     icon: "Award",
     color: "bg-[#A8483B]"
   }

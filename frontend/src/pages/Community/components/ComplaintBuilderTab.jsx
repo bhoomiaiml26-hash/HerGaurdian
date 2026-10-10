@@ -4,13 +4,12 @@ import {
   Copy,
   Download,
   BookmarkPlus,
-  CheckCircle2,
   AlertTriangle,
   RefreshCw,
   Eye,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { saveDocumentDraft, createSupportCase } from '../../../services/communityService';
+import { saveDocumentDraft } from '../../../services/communityService';
 
 const templates = [
   {
@@ -170,34 +169,6 @@ ${senderContact ? senderContact.trim() : '[Contact Phone / Email]'}`;
     } catch (err) {
       console.error('Failed to save draft:', err);
       toast.error('Failed to save draft. Please check your login session.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCreateCaseFromDraft = async () => {
-    if (!generatedDraft) return;
-    setIsSaving(true);
-    try {
-      const res = await createSupportCase({
-        title: subject.slice(0, 100),
-        category: currentTpl.name,
-        description: `FORMAL DRAFT PREPARED:\n\n${generatedDraft}`,
-        status: 'planning',
-        priority: 'high',
-        incidentDate: incidentDate || new Date().toISOString().split('T')[0],
-        tasks: [
-          { title: 'Review and verify draft facts with personal records', completed: false, priority: 'urgent' },
-          { title: 'Send formal communication to recipient via email / registered post', completed: false },
-          { title: 'Follow up on written acknowledgment within 7 days', completed: false },
-        ],
-      });
-      if (res.success) {
-        toast.success('Created new case in Case Tracker with this draft!');
-      }
-    } catch (err) {
-      console.error('Failed to create case:', err);
-      toast.error('Failed to create case.');
     } finally {
       setIsSaving(false);
     }
@@ -442,14 +413,6 @@ ${senderContact ? senderContact.trim() : '[Contact Phone / Email]'}`;
                 >
                   <BookmarkPlus className="h-3.5 w-3.5" />
                   <span>Save to My Private Drafts</span>
-                </button>
-                <button
-                  onClick={handleCreateCaseFromDraft}
-                  disabled={isSaving}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#EDE6E2] bg-white px-4 py-2 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA] disabled:opacity-50"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#286646]" />
-                  <span>Save as Case in Tracker</span>
                 </button>
               </div>
             )}

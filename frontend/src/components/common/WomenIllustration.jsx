@@ -43,7 +43,7 @@ const features = [
   {
     icon: Users,
     title: "Community & Rights",
-    description: "Legal guidance, action plans, complaint builder, and mutual support circles.",
+    description: "Legal guidance, action plans, complaint builder, and verified support resources.",
   },
 ];
 

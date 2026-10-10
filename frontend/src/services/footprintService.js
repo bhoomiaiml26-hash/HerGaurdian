@@ -6,8 +6,20 @@ import { createWorker } from 'tesseract.js';
 
 // ── SCAN ANALYSIS ────────────────────────────────────────────────────────────
 
-export const analyzeScan = (text, scanType = 'text') =>
-  api.post('/footprint/analyze', { text, scanType }).then((r) => r.data);
+export const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+
+export const analyzeScan = (payload, defaultScanType = 'text') => {
+  const body = typeof payload === 'string'
+    ? { text: payload, scanType: defaultScanType }
+    : { scanType: defaultScanType, ...payload };
+  return api.post('/footprint/analyze', body).then((r) => r.data);
+};
 
 // ── SCAN HISTORY ─────────────────────────────────────────────────────────────
 
@@ -55,7 +67,7 @@ export async function extractTextFromImage(imageSource, onProgress) {
 
     if (onProgress) onProgress('Text extraction complete', 100);
     return { text, confidence: Math.round(confidence) };
-  } catch (err) {
+  } catch {
     if (worker) { try { await worker.terminate(); } catch { /* ignore */ } }
     throw new Error('Could not read text from this image. Try uploading a clearer screenshot.');
   }

@@ -15,9 +15,9 @@ const whyChooseData = [
       "Encrypted communication and strict client-side privacy safeguards for sensitive wellness data.",
   },
   {
-    title: "Grants & Opportunities",
+    title: "Career Guidance",
     description:
-      "Curated repository of accredited scholarships, venture grants, and mentorship networks.",
+      "Career roadmaps, skill-gap analysis, and resume guidance to plan your next step.",
   },
   {
     title: "Comprehensive Care",

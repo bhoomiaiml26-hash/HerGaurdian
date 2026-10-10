@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Apple } from "lucide-react";
 import toast from "react-hot-toast";
 import HealthTipModal from "../../components/common/HealthTipModal";
 import CategoryFilter from "../../components/common/CategoryFilter";

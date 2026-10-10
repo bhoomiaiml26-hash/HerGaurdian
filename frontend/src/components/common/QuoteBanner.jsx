@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { inspirationQuotes } from "../../data/inspirationQuotes";
 
@@ -33,11 +32,7 @@ function pickQuote() {
 }
 
 function QuoteBanner() {
-  const [quote, setQuote] = useState(null);
-
-  useEffect(() => {
-    setQuote(pickQuote());
-  }, []);
+  const quote = pickQuote();
 
   return (
     <div className="mx-auto mt-4 mb-16 w-11/12 max-w-4xl">

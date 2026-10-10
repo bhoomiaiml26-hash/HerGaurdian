@@ -42,27 +42,14 @@ function CheckinForm({ existing, onSaved, onCancel }) {
   const [date, setDate] = useState(existing?.date || todayISO());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [isDirty, setIsDirty] = useState(false);
 
-  useEffect(() => {
-    if (!isDirty && existing) {
-      setMood(existing.mood || "");
-      setEnergy(existing.energy ?? null);
-      setStress(existing.stress ?? null);
-      setSleepQuality(existing.sleepQuality ?? null);
-      setGeneralWellbeing(existing.generalWellbeing ?? null);
-      setNotes(existing.notes || "");
-      setDate(existing.date || todayISO());
-    }
-  }, [existing, isDirty]);
-
-  const updateMood = (v) => { setMood(v); setIsDirty(true); };
-  const updateEnergy = (v) => { setEnergy(v); setIsDirty(true); };
-  const updateStress = (v) => { setStress(v); setIsDirty(true); };
-  const updateSleepQuality = (v) => { setSleepQuality(v); setIsDirty(true); };
-  const updateGeneralWellbeing = (v) => { setGeneralWellbeing(v); setIsDirty(true); };
-  const updateNotes = (v) => { setNotes(v); setIsDirty(true); };
-  const updateDate = (v) => { setDate(v); setIsDirty(true); };
+  const updateMood = (v) => { setMood(v); };
+  const updateEnergy = (v) => { setEnergy(v); };
+  const updateStress = (v) => { setStress(v); };
+  const updateSleepQuality = (v) => { setSleepQuality(v); };
+  const updateGeneralWellbeing = (v) => { setGeneralWellbeing(v); };
+  const updateNotes = (v) => { setNotes(v); };
+  const updateDate = (v) => { setDate(v); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,7 +72,6 @@ function CheckinForm({ existing, onSaved, onCancel }) {
         await saveCheckin(payload);
         toast.success("Check-in saved");
       }
-      setIsDirty(false);
       onSaved();
     } catch (err) {
       setError(err.response?.data?.message || "Could not save your check-in. Please try again.");

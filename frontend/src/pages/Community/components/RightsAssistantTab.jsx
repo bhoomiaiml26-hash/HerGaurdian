@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Scale,
   ShieldAlert,
@@ -7,7 +6,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   FileText,
-  BookmarkPlus,
   AlertTriangle,
   ExternalLink,
   PhoneCall,
@@ -16,7 +14,6 @@ import {
   Edit3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createSupportCase } from '../../../services/communityService';
 import { statutoryProvisions } from '../../../data/rightsDirectoryData';
 
 const categories = [
@@ -64,7 +61,7 @@ const categories = [
   },
 ];
 
-export default function RightsAssistantTab({ onSwitchToComplaint, onCaseCreated }) {
+export default function RightsAssistantTab({ onSwitchToComplaint }) {
   const [step, setStep] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('posh');
   const [jurisdiction, setJurisdiction] = useState('India (National)');
@@ -76,7 +73,6 @@ export default function RightsAssistantTab({ onSwitchToComplaint, onCaseCreated 
 
   // Analysis result
   const [analysisResult, setAnalysisResult] = useState(null);
-  const [isSavingCase, setIsSavingCase] = useState(false);
   const [isEditingPlan, setIsEditingPlan] = useState(false);
   const [editedSteps, setEditedSteps] = useState([]);
 
@@ -171,43 +167,6 @@ export default function RightsAssistantTab({ onSwitchToComplaint, onCaseCreated 
     setAnalysisResult(result);
     setEditedSteps(steps);
     setStep(4);
-  };
-
-  const handleSaveToCaseTracker = async () => {
-    if (!analysisResult) return;
-    setIsSavingCase(true);
-    try {
-      const caseData = {
-        title: `${analysisResult.category} - Action Plan`,
-        category: analysisResult.category,
-        jurisdiction,
-        description: `FACTUAL SUMMARY:\n${analysisResult.factualSummary}\n\nSTATUTORY BASIS:\n${analysisResult.statutoryLaw} (Authority: ${analysisResult.authority})`,
-        status: 'in_progress',
-        priority: 'high',
-        incidentDate: incidentDate || new Date().toISOString().split('T')[0],
-        tasks: editedSteps.map((s, idx) => ({
-          title: s.title,
-          completed: false,
-          priority: idx === 0 ? 'urgent' : 'normal',
-        })),
-        notes: [
-          {
-            text: `Generated via Rights Action Assistant on ${new Date().toLocaleDateString()}. Evidence checklist: ${analysisResult.evidenceChecklist.join(', ')}`,
-          },
-        ],
-      };
-
-      const res = await createSupportCase(caseData);
-      if (res.success) {
-        toast.success('Action plan saved to your Private Case Tracker!');
-        if (onCaseCreated) onCaseCreated(res.case);
-      }
-    } catch (err) {
-      console.error('Failed to save case:', err);
-      toast.error('Failed to save case to tracker. Check authentication.');
-    } finally {
-      setIsSavingCase(false);
-    }
   };
 
   return (
@@ -492,14 +451,6 @@ export default function RightsAssistantTab({ onSwitchToComplaint, onCaseCreated 
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSaveToCaseTracker}
-                  disabled={isSavingCase}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#8C3737] px-4 py-2 text-xs font-semibold text-white hover:bg-[#752B2B] shadow-xs disabled:opacity-50"
-                >
-                  <BookmarkPlus className="h-3.5 w-3.5" />
-                  <span>{isSavingCase ? 'Saving...' : 'Save to Private Case Tracker'}</span>
-                </button>
                 <button
                   onClick={() => onSwitchToComplaint(selectedCategory, analysisResult.factualSummary)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[#EDE6E2] bg-white px-3.5 py-2 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA]"

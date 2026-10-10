@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Brain, Quote } from "lucide-react";
+import { Quote } from "lucide-react";
 import HealthTipModal from "../../components/common/HealthTipModal";
 import CategoryFilter from "../../components/common/CategoryFilter";
 import SearchBar from "../../components/common/SearchBar";

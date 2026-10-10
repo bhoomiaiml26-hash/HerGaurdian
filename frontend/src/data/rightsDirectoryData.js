@@ -209,7 +209,7 @@ export const statutoryProvisions = {
     keyRules: [
       'Section 66E IT Act: Violation of privacy (capturing/publishing private area images without consent).',
       'Section 67 & 67A IT Act: Publishing or transmitting sexually explicit content in electronic form.',
-      'Section 354D IPC / BNS equivalent: Cyber stalking (monitoring internet or email use against express objection).',
+      'Section 354D BNS: Cyber stalking (monitoring internet or email use against express objection).',
       'Platforms are required under IT Rules 2021 to take down non-consensual intimate imagery within 24 hours of reporting.',
     ],
     officialAuthority: 'Cyber Crime Police Station / 1930 Helpline',

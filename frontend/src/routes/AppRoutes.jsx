@@ -14,7 +14,6 @@ const ResetPassword = lazy(() => import("../pages/Authentication/ResetPassword")
 // AI Assistant removed
 const Dashboard = lazy(() => import("../pages/Home/Dashboard"));
 const EmergencySOS = lazy(() => import("../pages/EmergencySOS/EmergencySOS"));
-const SafeRoute = lazy(() => import("../pages/SafeRoute/SafeRoute"));
 const DigitalSafetyAnalyzer = lazy(() => import("../pages/DigitalSafetyAnalyzer/DigitalSafetyAnalyzer"));
 const WellnessHub = lazy(() => import("../pages/WellnessHub/WellnessHub"));
 const HealthReminder = lazy(() => import("../pages/HealthReminder/HealthReminder"));
@@ -50,7 +49,7 @@ function AppRoutesContent() {
         <Route element={<RequireAuth><DashboardLayout /></RequireAuth>}>
           <Route path="/dashboard" element={<Suspense fallback={<RouteFallback />}><Dashboard /></Suspense>} />
           <Route path="/emergency" element={<Suspense fallback={<RouteFallback />}><EmergencySOS /></Suspense>} />
-          <Route path="/safe-route" element={<Suspense fallback={<RouteFallback />}><SafeRoute /></Suspense>} />
+          <Route path="/safe-route" element={<Navigate to="/dashboard" replace />} />
           <Route path="/safety-analyzer" element={<Suspense fallback={<RouteFallback />}><DigitalSafetyAnalyzer /></Suspense>} />
           <Route path="/wellness" element={<Suspense fallback={<RouteFallback />}><WellnessHub /></Suspense>} />
           <Route path="/reminder" element={<Suspense fallback={<RouteFallback />}><HealthReminder /></Suspense>} />
@@ -73,7 +72,12 @@ function AppRoutesContent() {
           <Route path="/nutrition" element={<Navigate to="/wellness?section=nutrition-ai" replace />} />
           <Route path="/fitness" element={<Navigate to="/wellness?section=movement" replace />} />
           <Route path="/mental" element={<Navigate to="/wellness?section=reset" replace />} />
+
+          {/* Fallback for unknown nested routes */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
+        {/* Global fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );

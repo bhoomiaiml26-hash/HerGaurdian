@@ -36,3 +36,15 @@ export const updateSavingsGoal = (id, data) =>
 
 export const deleteSavingsGoal = (id) =>
   api.delete(`/finance/goals/${id}`).then((r) => r.data);
+
+// ── BUDGET CONFIGURATION & ANALYTICS ─────────────────────────────────────────
+
+export const getBudgetSettings = (month) =>
+  api.get('/finance/budget-settings', { params: month ? { month } : {} }).then((r) => r.data);
+
+export const updateBudgetSettings = (data) =>
+  api.post('/finance/budget-settings', data).then((r) => r.data);
+
+export const getFinancialAnalytics = (month) =>
+  api.get('/finance/analytics', { params: month ? { month } : {} }).then((r) => r.data);
+

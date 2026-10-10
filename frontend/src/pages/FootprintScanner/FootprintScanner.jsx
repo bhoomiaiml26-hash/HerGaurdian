@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   ScanSearch, FileText, History, ShieldCheck, ShieldAlert,
-  Upload, Trash2, CheckCircle2, AlertTriangle, AlertCircle,
-  Info, Eye, EyeOff, ChevronDown, ChevronRight, RefreshCw,
-  X, Clock
+  Upload, Trash2, AlertTriangle, AlertCircle, Info,
+  ChevronDown, ChevronRight,
+  X, Clock, HelpCircle, ImageIcon
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { analyzeScan, getScanHistory, deleteScan, deleteAllScans, updateFindingStatus, extractTextFromImage } from "../../services/footprintService";
+import { analyzeScan, getScanHistory, deleteScan, deleteAllScans, updateFindingStatus, extractTextFromImage, fileToBase64 } from "../../services/footprintService";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 /* ── theme tokens ── */
@@ -27,10 +27,11 @@ const SEVERITY_STYLES = {
 };
 
 const RISK_LEVEL_STYLE = {
-  low:      { color: "#1565C0", bg: "#E8F4FD",  label: "Low Risk",      icon: ShieldCheck },
-  medium:   { color: C.warn,    bg: C.warnBg,   label: "Medium Risk",   icon: AlertTriangle },
-  high:     { color: C.danger,  bg: C.dangerBg, label: "High Risk",     icon: AlertCircle },
-  critical: { color: "#7B1010", bg: "#FFE4E4",  label: "Critical Risk", icon: ShieldAlert },
+  low:          { color: "#1565C0", bg: "#E8F4FD",  label: "Low Risk",                       icon: ShieldCheck },
+  medium:       { color: C.warn,    bg: C.warnBg,   label: "Medium Risk",                    icon: AlertTriangle },
+  high:         { color: C.danger,  bg: C.dangerBg, label: "High Risk",                      icon: AlertCircle },
+  critical:     { color: "#7B1010", bg: "#FFE4E4",  label: "Critical Risk",                  icon: ShieldAlert },
+  inconclusive: { color: "#4F4A45", bg: "#EDE6E2",  label: "Inconclusive / Limited Visibility", icon: HelpCircle },
 };
 
 const TABS = [
@@ -69,7 +70,7 @@ export default function FootprintScanner() {
           <div className="mt-3 flex items-start gap-2 rounded-lg p-3 text-xs"
             style={{ background: C.successBg, color: C.success }}>
             <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5" />
-            <span><strong>Zero-Storage Privacy:</strong> Your full text is analysed in-memory and never stored. Only anonymised metadata (finding counts, severity) is saved. Screenshot OCR runs entirely in your browser — images never leave your device.</span>
+            <span><strong>Zero-Storage Privacy:</strong> Your full text is analysed in-memory and never stored. Only anonymised metadata (finding counts, severity) is saved. Screenshot images are sent encrypted to the privacy analysis engine and are not retained after analysis.</span>
           </div>
         </div>
 
@@ -111,6 +112,7 @@ function ScanTab({ onViewHistory }) {
   const [ocrProgress, setOcrProgress] = useState(null);
   const [result, setResult] = useState(null);
   const [expandedFindings, setExpandedFindings] = useState({});
+  const [selectedFile, setSelectedFile] = useState(null); // { file, previewUrl, name, sizeKb }
   const fileRef = useRef();
 
   const handleTextScan = async () => {
@@ -128,30 +130,68 @@ function ScanTab({ onViewHistory }) {
     } finally { setScanning(false); }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) return toast.error("Please upload an image file.");
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!allowed.includes(file.type)) return toast.error("Please upload a PNG, JPG, or WebP image.");
     if (file.size > 10 * 1024 * 1024) return toast.error("Image too large. Max 10MB.");
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedFile({ file, previewUrl, name: file.name, sizeKb: Math.round(file.size / 1024) });
+    setResult(null);
+    // Reset file input so the same file can be re-selected
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
+  const handleRemoveFile = () => {
+    if (selectedFile?.previewUrl) URL.revokeObjectURL(selectedFile.previewUrl);
+    setSelectedFile(null);
+    setResult(null);
+  };
+
+  const handleImageScan = async () => {
+    if (!selectedFile) return toast.error("Please select a screenshot first.");
     setScanning(true);
     setResult(null);
-    setOcrProgress({ msg: "Initialising OCR…", pct: 5 });
+    setOcrProgress({ msg: "Initialising OCR engine…", pct: 5 });
 
     try {
-      const { text, confidence } = await extractTextFromImage(
-        file,
-        (msg, pct) => setOcrProgress({ msg, pct })
+      // 1. Convert file to base64 (includes data: prefix)
+      const base64DataUrl = await fileToBase64(selectedFile.file);
+
+      // 2. Run browser-side OCR (best-effort; may return empty for blurred images)
+      let ocrText = "";
+      let ocrConfidence = 0;
+      try {
+        const { text, confidence } = await extractTextFromImage(
+          selectedFile.file,
+          (msg, pct) => setOcrProgress({ msg, pct })
+        );
+        ocrText = text || "";
+        ocrConfidence = confidence || 0;
+      } catch {
+        // OCR failure is non-fatal — image is still sent to backend
+      }
+      setOcrProgress({ msg: "Sending to privacy analysis engine…", pct: 97 });
+
+      // 3. Send BOTH the image and OCR text to the backend
+      const r = await analyzeScan(
+        {
+          image: base64DataUrl,
+          mimeType: selectedFile.file.type,
+          text: ocrText,
+          ocrConfidence,
+          scanType: "screenshot",
+        },
+        "screenshot"
       );
-      setOcrProgress(null);
-      if (!text) { toast.error("No text found in the image."); setScanning(false); return; }
-      toast(`Extracted text with ${confidence}% confidence. Analysing…`, { icon: "🔍" });
-      const r = await analyzeScan(text, "screenshot");
       setResult(r);
-      if (r.findingCount === 0) toast.success("Scan complete — no exposures found!");
+      if (r.isInconclusive) toast("Limited visibility — see inconclusive notice.", { icon: "🔍" });
+      else if (r.findingCount === 0) toast.success("Scan complete — no exposures found!");
       else toast(`Found ${r.findingCount} item(s) to review.`, { icon: "⚠️" });
     } catch (err) {
-      toast.error(err.message || "Could not process image.");
+      const msg = err.response?.data?.message || err.message || "Could not analyse image. Please try again.";
+      toast.error(msg);
     } finally { setScanning(false); setOcrProgress(null); }
   };
 
@@ -191,11 +231,47 @@ function ScanTab({ onViewHistory }) {
         </div>
       </div>
 
+      {/* Preset Case Buttons */}
+      {scanMode === "text" && (
+        <div className="rounded-xl border p-3.5 space-y-2 bg-[#FAFAFA]" style={{ borderColor: C.border }}>
+          <p className="text-xs font-semibold text-[#1E1B18]">Quick Privacy Test Scenarios:</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              {
+                label: "Case A: Private Profile (Low Risk)",
+                text: "Profile is private.\nEmail and phone number are hidden.\nNo location is shared.\nPosts contain only general artwork and hobbies.\nNo sensitive personal information is exposed."
+              },
+              {
+                label: "Case B: Public with Check-Ins (Medium Risk)",
+                text: "Profile is public.\nEmail address is visible.\nPhone number is hidden.\nCity and recurring check-in locations are shared.\nPublic posts reveal routine places and activities, but no home address or live location."
+              },
+              {
+                label: "Case C: Public High Exposure (High Risk)",
+                text: "Profile is public.\nEmail and phone number are visible.\nHome address and live location are publicly shared.\nPosts reveal when the person is home alone and disclose real-time whereabouts."
+              }
+            ].map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setTextInput(c.text);
+                  setResult(null);
+                }}
+                className="rounded-lg border px-2.5 py-1.5 text-xs font-medium transition hover:border-[#8C3737] hover:bg-[#F6EFEA] text-[#4F4A45]"
+                style={{ borderColor: C.border }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Input area */}
       {scanMode === "text" ? (
         <div className="space-y-3">
           <label className="block text-xs font-medium" style={{ color: C.muted }}>
-            Paste your bio, social media post, or message (max 10,000 characters)
+            Paste your bio, social media post, or profile description (max 10,000 characters)
           </label>
           <textarea
             rows={8}
@@ -225,14 +301,70 @@ function ScanTab({ onViewHistory }) {
         </div>
       ) : (
         <div className="space-y-3">
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-          <button onClick={() => fileRef.current?.click()} disabled={scanning}
-            className="w-full rounded-xl border-2 border-dashed py-12 flex flex-col items-center gap-3 transition hover:opacity-80 disabled:opacity-50"
-            style={{ borderColor: C.brand, background: C.brandBg }}>
-            <Upload className="h-8 w-8" style={{ color: C.brand }} />
-            <span className="text-sm font-semibold" style={{ color: C.brand }}>Click to upload screenshot</span>
-            <span className="text-xs" style={{ color: C.muted }}>PNG, JPG, WebP — max 10MB. Processed entirely in your browser.</span>
-          </button>
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileSelect} />
+
+          {/* Upload drop-zone (hidden once file is selected) */}
+          {!selectedFile && (
+            <button onClick={() => fileRef.current?.click()} disabled={scanning}
+              className="w-full rounded-xl border-2 border-dashed py-12 flex flex-col items-center gap-3 transition hover:opacity-80 disabled:opacity-50"
+              style={{ borderColor: C.brand, background: C.brandBg }}>
+              <Upload className="h-8 w-8" style={{ color: C.brand }} />
+              <span className="text-sm font-semibold" style={{ color: C.brand }}>Click to upload screenshot</span>
+              <span className="text-xs" style={{ color: C.muted }}>PNG, JPG, WebP — max 10MB</span>
+            </button>
+          )}
+
+          {/* Image preview card */}
+          {selectedFile && (
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor: C.border }}>
+              <div className="relative">
+                <img
+                  src={selectedFile.previewUrl}
+                  alt="Screenshot preview"
+                  className="w-full max-h-64 object-contain bg-[#FAF8F6]"
+                />
+                <button
+                  onClick={handleRemoveFile}
+                  disabled={scanning}
+                  className="absolute top-2 right-2 rounded-full p-1.5 shadow-md transition hover:opacity-80 disabled:opacity-50"
+                  style={{ background: C.brand, color: "#fff" }}
+                  title="Remove screenshot"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t" style={{ borderColor: C.border }}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <ImageIcon className="h-4 w-4 shrink-0" style={{ color: C.brand }} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: C.ink }}>{selectedFile.name}</p>
+                    <p className="text-[10px]" style={{ color: C.faint }}>{selectedFile.sizeKb} KB</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={scanning}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border transition hover:border-[#8C3737] disabled:opacity-50"
+                    style={{ borderColor: C.border, color: C.muted }}
+                  >
+                    Replace
+                  </button>
+                  <button
+                    onClick={handleImageScan}
+                    disabled={scanning}
+                    className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                    style={{ background: C.brand }}
+                  >
+                    <ScanSearch className="h-4 w-4" />
+                    {scanning ? "Analysing…" : "Analyse Screenshot"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* OCR / upload progress bar */}
           {ocrProgress && (
             <div className="rounded-lg p-4 space-y-2" style={{ background: C.brandBg }}>
               <p className="text-xs font-medium" style={{ color: C.brand }}>{ocrProgress.msg}</p>
@@ -249,10 +381,11 @@ function ScanTab({ onViewHistory }) {
 
       {/* Results */}
       {result && (
-        <div className="space-y-4 pt-2 border-t" style={{ borderColor: C.border }}>
+        <div className="space-y-5 pt-3 border-t" style={{ borderColor: C.border }}>
+          {/* Header */}
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h3 className="font-serif font-bold text-lg" style={{ color: C.ink }}>Scan Results</h3>
+              <h3 className="font-serif font-bold text-lg" style={{ color: C.ink }}>Privacy Risk Assessment</h3>
               <p className="text-xs mt-0.5" style={{ color: C.faint }}>
                 Scanned at {result.checkedAt ? new Date(result.checkedAt).toLocaleString("en-IN") : "just now"}
               </p>
@@ -260,53 +393,188 @@ function ScanTab({ onViewHistory }) {
             <RiskBadge level={result.overallRiskLevel} />
           </div>
 
-          <div className="rounded-lg p-4 text-sm" style={{
-            background: result.findingCount === 0 ? C.successBg : RISK_LEVEL_STYLE[result.overallRiskLevel]?.bg || C.warnBg,
-            color: result.findingCount === 0 ? C.success : RISK_LEVEL_STYLE[result.overallRiskLevel]?.color || C.warn
-          }}>
-            {result.message}
+          {/* Inconclusive / Blurred Banner */}
+          {result.isInconclusive && (
+            <div className="flex items-start gap-2.5 rounded-xl border p-4 text-sm"
+              style={{ borderColor: "#C0C0C0", background: "#F3F3F3", color: "#3D3D3D" }}>
+              <HelpCircle className="h-5 w-5 shrink-0 mt-0.5" style={{ color: "#4F4A45" }} />
+              <div>
+                <p className="font-semibold mb-0.5">Inconclusive Analysis — Limited Visibility</p>
+                <p className="text-xs" style={{ color: "#5A5A5A" }}>
+                  {result.uncertaintyNote ||
+                    "The uploaded screenshot is heavily blurred, degraded, or unreadable. Sensitive details cannot be reliably identified from this image. Upload a clear, uncompressed screenshot for an accurate privacy assessment."}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Risk Score Meter Card */}
+          <div className="rounded-xl border p-4 sm:p-5 bg-white space-y-3" style={{ borderColor: C.border }}>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#78726B]">
+                  Calculated Privacy Risk Score
+                </span>
+                <div className="flex items-baseline gap-2 mt-0.5">
+                  <span
+                    className="text-3xl font-bold font-serif"
+                    style={{
+                      color:
+                        result.overallRiskLevel === "inconclusive"
+                          ? C.faint
+                          : result.overallRiskLevel === "high" || result.overallRiskLevel === "critical"
+                          ? C.danger
+                          : result.overallRiskLevel === "medium"
+                          ? C.warn
+                          : C.success,
+                    }}
+                  >
+                    {result.isInconclusive ? "—" : (result.riskScore ?? 0)}
+                  </span>
+                  <span className="text-sm font-medium" style={{ color: C.muted }}>/ 100</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span
+                  className="text-xs font-semibold px-2.5 py-1 rounded-full capitalize"
+                  style={{
+                    background:
+                      result.overallRiskLevel === "inconclusive"
+                        ? "#EDE6E2"
+                        : result.overallRiskLevel === "high" || result.overallRiskLevel === "critical"
+                        ? C.dangerBg
+                        : result.overallRiskLevel === "medium"
+                        ? C.warnBg
+                        : C.successBg,
+                    color:
+                      result.overallRiskLevel === "inconclusive"
+                        ? C.faint
+                        : result.overallRiskLevel === "high" || result.overallRiskLevel === "critical"
+                        ? C.danger
+                        : result.overallRiskLevel === "medium"
+                        ? C.warn
+                        : C.success,
+                  }}
+                >
+                  {result.isInconclusive ? "Inconclusive" : `${result.overallRiskLevel} Risk Exposure`}
+                </span>
+                <p className="text-[11px] mt-1 text-right" style={{ color: C.faint }}>
+                  Scale: 0–29 Low · 30–69 Medium · 70–100 High
+                </p>
+              </div>
+            </div>
+
+            {/* Score Progress Bar */}
+            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "#EDE6E2" }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: result.isInconclusive ? "100%" : `${Math.max(5, Math.min(100, result.riskScore ?? 5))}%`,
+                  background:
+                    result.isInconclusive
+                      ? "repeating-linear-gradient(45deg, #C8C0BA 0px, #C8C0BA 6px, #EDE6E2 6px, #EDE6E2 12px)"
+                      : result.overallRiskLevel === "high" || result.overallRiskLevel === "critical"
+                      ? C.danger
+                      : result.overallRiskLevel === "medium"
+                      ? C.warn
+                      : C.success,
+                }}
+              />
+            </div>
+
+            {/* Reasoning Statement */}
+            {result.reasoning && (
+              <div className="rounded-lg p-3 text-xs leading-relaxed" style={{ background: C.brandLight, color: C.muted }}>
+                <strong style={{ color: C.ink }}>Contextual Reasoning: </strong>
+                {result.reasoning}
+              </div>
+            )}
           </div>
 
+          {/* Limitations Banner */}
+          <div
+            className="flex items-start gap-2.5 rounded-lg border p-3 text-xs"
+            style={{ borderColor: "#D0E2FF", background: "#EDF5FF", color: "#0043CE" }}
+          >
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <div>
+              <strong>Self-Assessment Limitation: </strong>
+              <span>
+                {result.limitations ||
+                  "This assessment is based exclusively on the information you provided in this scan. The scanner did not search external social media platforms or index your profiles online."}
+              </span>
+            </div>
+          </div>
+
+          {/* Detected Exposures List */}
           {result.findings?.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-semibold text-sm" style={{ color: C.ink }}>
-                {result.findings.length} Finding{result.findings.length !== 1 ? "s" : ""} Detected
+                {result.findings.length} Finding{result.findings.length !== 1 ? "s" : ""} Identified
               </h4>
               {result.findings.map((finding, idx) => {
                 const s = SEVERITY_STYLES[finding.severity] || SEVERITY_STYLES.medium;
                 const Icon = s.icon;
                 const expanded = expandedFindings[idx];
                 return (
-                  <div key={idx} className="rounded-xl border overflow-hidden"
-                    style={{ borderColor: s.color + "44" }}>
+                  <div
+                    key={idx}
+                    className="rounded-xl border overflow-hidden"
+                    style={{ borderColor: s.color + "44" }}
+                  >
                     <button
                       onClick={() => toggleFinding(idx)}
                       className="w-full flex items-center gap-3 p-4 text-left hover:opacity-90 transition-opacity"
-                      style={{ background: s.bg }}>
+                      style={{ background: s.bg }}
+                    >
                       <Icon className="h-5 w-5 shrink-0" style={{ color: s.color }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: s.color }}>{finding.title}</p>
-                        <p className="text-xs" style={{ color: s.color + "BB" }}>{s.label} severity</p>
+                        <p className="text-sm font-semibold" style={{ color: s.color }}>
+                          {finding.title}
+                        </p>
+                        <p className="text-xs" style={{ color: s.color + "BB" }}>
+                          {s.label} severity exposure
+                        </p>
                       </div>
-                      <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize"
-                        style={{ background: s.color + "22", color: s.color }}>
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize"
+                        style={{ background: s.color + "22", color: s.color }}
+                      >
                         {finding.status?.replace("_", " ") || "to review"}
                       </span>
-                      {expanded ? <ChevronDown className="h-4 w-4 shrink-0" style={{ color: s.color }} /> : <ChevronRight className="h-4 w-4 shrink-0" style={{ color: s.color }} />}
+                      {expanded ? (
+                        <ChevronDown className="h-4 w-4 shrink-0" style={{ color: s.color }} />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0" style={{ color: s.color }} />
+                      )}
                     </button>
                     {expanded && (
-                      <div className="p-4 space-y-3 border-t" style={{ borderColor: s.color + "33" }}>
+                      <div className="p-4 space-y-3.5 border-t bg-white" style={{ borderColor: s.color + "33" }}>
                         <div>
-                          <p className="text-xs font-semibold mb-1" style={{ color: C.muted }}>What was found</p>
-                          <p className="text-sm" style={{ color: C.ink }}>{finding.evidence}</p>
+                          <p className="text-xs font-semibold mb-1" style={{ color: C.muted }}>
+                            Detected Information
+                          </p>
+                          <p className="text-sm text-[#1E1B18]">{finding.evidence}</p>
                         </div>
+                        {finding.reasoning && (
+                          <div className="rounded-lg p-2.5 bg-[#FAF8F6] text-xs">
+                            <span className="font-semibold text-[#8C3737]">Why This Matters: </span>
+                            <span className="text-[#4F4A45]">{finding.reasoning}</span>
+                          </div>
+                        )}
                         <div>
-                          <p className="text-xs font-semibold mb-1" style={{ color: C.muted }}>Recommendation</p>
-                          <p className="text-sm" style={{ color: C.ink }}>{finding.recommendation}</p>
+                          <p className="text-xs font-semibold mb-1" style={{ color: C.muted }}>
+                            Recommended Protective Action
+                          </p>
+                          <p className="text-sm" style={{ color: C.ink }}>
+                            {finding.recommendation}
+                          </p>
                         </div>
                         {result.scanId && (
-                          <div>
-                            <p className="text-xs font-semibold mb-1" style={{ color: C.muted }}>Update Status</p>
+                          <div className="pt-2 border-t" style={{ borderColor: C.border }}>
+                            <p className="text-xs font-semibold mb-1.5" style={{ color: C.muted }}>
+                              Update Status
+                            </p>
                             <div className="flex flex-wrap gap-2">
                               {[
                                 { value: "to_review", label: "To Review" },
@@ -314,12 +582,16 @@ function ScanTab({ onViewHistory }) {
                                 { value: "resolved", label: "Resolved" },
                                 { value: "not_applicable", label: "N/A" },
                               ].map(({ value, label }) => (
-                                <button key={value}
+                                <button
+                                  key={value}
                                   onClick={() => handleUpdateStatus(result.scanId, idx, value)}
                                   className="rounded-full px-3 py-1 text-xs font-medium border transition"
-                                  style={finding.status === value
-                                    ? { background: s.color, color: "#fff", borderColor: s.color }
-                                    : { background: "transparent", color: C.muted, borderColor: C.border }}>
+                                  style={
+                                    finding.status === value
+                                      ? { background: s.color, color: "#fff", borderColor: s.color }
+                                      : { background: "transparent", color: C.muted, borderColor: C.border }
+                                  }
+                                >
                                   {label}
                                 </button>
                               ))}
@@ -335,8 +607,7 @@ function ScanTab({ onViewHistory }) {
           )}
 
           <div className="pt-2">
-            <button onClick={onViewHistory}
-              className="text-xs font-semibold" style={{ color: C.brand }}>
+            <button onClick={onViewHistory} className="text-xs font-semibold" style={{ color: C.brand }}>
               View full scan history →
             </button>
           </div>
@@ -361,8 +632,6 @@ function HistoryTab() {
     catch { toast.error("Could not load scan history."); }
     finally { setLoading(false); }
   }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   const handleDeleteScan = async (id) => {
     if (!confirm("Delete this scan report?")) return;
@@ -419,6 +688,12 @@ function HistoryTab() {
                       <span className="text-sm font-semibold capitalize" style={{ color: C.ink }}>{scan.scanType} Scan</span>
                       <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
                         style={{ background: rStyle.bg, color: rStyle.color }}>{rStyle.label}</span>
+                      {typeof scan.riskScore === 'number' && (
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                          style={{ background: "#F6EFEA", color: "#8C3737" }}>
+                          Score: {scan.riskScore}/100
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
                       <span className="text-xs" style={{ color: C.faint }}>
@@ -438,22 +713,35 @@ function HistoryTab() {
                   {expanded ? <ChevronDown className="h-4 w-4" style={{ color: C.faint }} /> : <ChevronRight className="h-4 w-4" style={{ color: C.faint }} />}
                 </div>
                 {expanded && (
-                  <div className="border-t p-4" style={{ borderColor: C.border }}>
-                    <p className="text-xs mb-3" style={{ color: C.muted }}>
-                      Scan summary: <span className="font-medium">{scan.inputSummary || "No summary available"}</span>
+                  <div className="border-t p-4 space-y-3" style={{ borderColor: C.border }}>
+                    <p className="text-xs" style={{ color: C.muted }}>
+                      Scan summary: <span className="font-medium text-[#1E1B18]">{scan.inputSummary || "No summary available"}</span>
                     </p>
+                    {scan.reasoning && (
+                      <div className="rounded-lg p-2.5 bg-[#FAF8F6] text-xs text-[#4F4A45]">
+                        <strong className="text-[#8C3737]">Assessment Context: </strong>
+                        {scan.reasoning}
+                      </div>
+                    )}
                     {scan.findings?.length > 0 ? (
                       <div className="space-y-2">
                         {scan.findings.map((f, i) => {
                           const s = SEVERITY_STYLES[f.severity] || SEVERITY_STYLES.medium;
                           return (
-                            <div key={i} className="flex items-center gap-2 rounded-lg p-2.5"
+                            <div key={i} className="rounded-lg p-2.5 space-y-1"
                               style={{ background: s.bg }}>
-                              <span className="text-xs font-semibold" style={{ color: s.color }}>{f.title}</span>
-                              <span className="ml-auto rounded-full px-2 py-0.5 text-[10px] capitalize"
-                                style={{ background: s.color + "22", color: s.color }}>
-                                {f.status?.replace("_", " ") || "to review"}
-                              </span>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-semibold" style={{ color: s.color }}>{f.title}</span>
+                                <span className="rounded-full px-2 py-0.5 text-[10px] capitalize"
+                                  style={{ background: s.color + "22", color: s.color }}>
+                                  {f.status?.replace("_", " ") || "to review"}
+                                </span>
+                              </div>
+                              {f.reasoning && (
+                                <p className="text-[11px]" style={{ color: s.color + "DD" }}>
+                                  {f.reasoning}
+                                </p>
+                              )}
                             </div>
                           );
                         })}

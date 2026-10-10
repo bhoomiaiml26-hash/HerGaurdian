@@ -30,7 +30,7 @@ export async function analyzeMessage(message) {
   } catch (err) {
     // If backend network error, use direct fallback call or throw friendly message
     if (err.response?.data?.message) {
-      throw new Error(err.response.data.message);
+      throw new Error(err.response.data.message, { cause: err });
     }
     
     // Attempt direct fetch if axios baseURL had issues
@@ -49,7 +49,8 @@ export async function analyzeMessage(message) {
     }
 
     throw new Error(
-      err.message || "Something went wrong while analyzing this message. Please try again."
+      err.message || "Something went wrong while analyzing this message. Please try again.",
+      { cause: err }
     );
   }
 }
@@ -103,7 +104,8 @@ export async function extractTextFromScreenshot(imageSource, onProgress) {
     }
     console.error("[SafetyAnalyzer OCR] Error during OCR:", ocrError);
     throw new Error(
-      "We couldn't read enough text from this image. Try uploading a clearer screenshot."
+      "We couldn't read enough text from this image. Try uploading a clearer screenshot.",
+      { cause: ocrError }
     );
   }
 }

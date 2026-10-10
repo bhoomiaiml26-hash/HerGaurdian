@@ -5,8 +5,6 @@ import {
   Copy,
   BookmarkPlus,
   Volume2,
-  CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { saveDocumentDraft } from '../../../services/communityService';

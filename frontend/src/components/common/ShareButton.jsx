@@ -20,7 +20,7 @@ function ShareButton({ title, text, url, className = '' }) {
       const shareText = `${title ? `${title}\n` : ''}${text}${url ? `\n${url}` : ''}`;
       await navigator.clipboard.writeText(shareText);
       toast.success('Resource link copied to clipboard');
-    } catch (_err) {
+    } catch {
       toast.error('Share action failed. Please try again.');
     }
   };

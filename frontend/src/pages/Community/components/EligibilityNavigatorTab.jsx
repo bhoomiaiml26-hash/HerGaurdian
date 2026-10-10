@@ -5,21 +5,18 @@ import {
   ExternalLink,
   ShieldCheck,
   AlertTriangle,
-  BookmarkPlus,
   RefreshCw,
   PhoneCall
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { statutorySchemes } from '../../../data/rightsDirectoryData';
-import { createSupportCase } from '../../../services/communityService';
 
-export default function EligibilityNavigatorTab({ onCaseCreated }) {
+export default function EligibilityNavigatorTab() {
   const [needCategory, setNeedCategory] = useState('shelter');
   const [employmentStatus, setEmploymentStatus] = useState('salaried');
   const [incomeBracket, setIncomeBracket] = useState('low');
   const [hasImmediateEmergency, setHasImmediateEmergency] = useState(false);
   const [matchedSchemes, setMatchedSchemes] = useState(null);
-  const [isSavingCase, setIsSavingCase] = useState(false);
 
   const handleRunNavigator = () => {
     let matches;
@@ -46,34 +43,6 @@ export default function EligibilityNavigatorTab({ onCaseCreated }) {
 
     setMatchedSchemes(matches);
     toast.success(`Found ${matches.length} matching statutory schemes!`);
-  };
-
-  const handleSaveSchemeToCase = async (scheme) => {
-    setIsSavingCase(true);
-    try {
-      const res = await createSupportCase({
-        title: `Application Tracker: ${scheme.name}`,
-        category: 'Statutory Scheme Application',
-        description: `SCHEME DETAILS:\n${scheme.description}\n\nELIGIBILITY:\n${scheme.eligibility}\n\nREQUIRED DOCUMENTS:\n${(scheme.documentsRequired || []).join('\n')}\n\nOFFICIAL PORTAL:\n${scheme.officialUrl}`,
-        status: 'planning',
-        priority: 'medium',
-        tasks: (scheme.applicationSteps || []).map((step, idx) => ({
-          title: step,
-          completed: false,
-          priority: idx === 0 ? 'urgent' : 'normal',
-        })),
-      });
-
-      if (res.success) {
-        toast.success(`Created private tracker for ${scheme.name}!`);
-        if (onCaseCreated) onCaseCreated(res.case);
-      }
-    } catch (err) {
-      console.error('Failed to save scheme to case:', err);
-      toast.error('Failed to create tracker. Please check your login session.');
-    } finally {
-      setIsSavingCase(false);
-    }
   };
 
   return (
@@ -305,14 +274,6 @@ export default function EligibilityNavigatorTab({ onCaseCreated }) {
                     )}
                   </div>
 
-                  <button
-                    onClick={() => handleSaveSchemeToCase(scheme)}
-                    disabled={isSavingCase}
-                    className="inline-flex items-center gap-1 rounded-lg bg-[#8C3737] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#752B2B] disabled:opacity-50"
-                  >
-                    <BookmarkPlus className="h-3.5 w-3.5" />
-                    <span>Track Application in Case Tracker</span>
-                  </button>
                 </div>
               </div>
             ))}

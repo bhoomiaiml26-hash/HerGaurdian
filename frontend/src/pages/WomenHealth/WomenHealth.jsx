@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { HeartPulse } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
