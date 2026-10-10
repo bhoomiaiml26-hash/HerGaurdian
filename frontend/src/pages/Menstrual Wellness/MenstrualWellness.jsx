@@ -1,31 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Sparkles, Info } from "lucide-react";
 import HealthTipModal from "../../components/common/HealthTipModal";
 import CategoryFilter from "../../components/common/CategoryFilter";
 import SearchBar from "../../components/common/SearchBar";
-import SectionTitle from "../../components/common/SectionTitle";
 import WellnessCard from "../../components/common/WellnessCard";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import menstrualTips from "../../data/menstrualTips";
 import { addFavorite, getFavorites, removeFavorite } from "../../services/favoriteService";
 
 const cycleFacts = [
-  "Your cycle can affect energy, mood, and appetite in different ways.",
-  "Tracking symptoms can help you notice patterns and support your wellbeing.",
-  "A balanced routine with rest and movement can help you feel more comfortable.",
-  "Hydration and nutritious meals can support energy during your cycle.",
-  "Some people feel more tired or emotional in certain phases of the cycle.",
-  "Gentle exercise may help reduce tension and improve circulation.",
-  "Warmth and relaxation are simple comfort tools for cramping.",
-  "Listening to your body is an important part of menstrual wellness.",
+  "Endocrine fluctuations directly regulate metabolic rate, sleep architecture, and neurotransmitter balance across phases.",
+  "Documenting basal patterns provides actionable predictability for physical training and cognitive workload.",
+  "Targeted magnesium and electrolyte replenishment reduces myometrial spasm intensity.",
+  "Systematic hydration mitigates cyclic fluid retention and vasopressin-mediated fatigue.",
+  "Phase-specific adjustments in strength training maximize performance during the follicular stage.",
+  "Gentle aerobic activity enhances local oxygenation and accelerates prostaglandin clearance.",
+  "Localized thermal therapy relaxes smooth muscle tissue and attenuates acute uterine cramping.",
+  "Active tracking empowers collaborative discussions with clinical gynecologists.",
 ];
 
 const quickCareTips = [
-  { title: "Stay Hydrated", description: "Sip water regularly to feel more comfortable and reduce bloating." },
-  { title: "Use Heating Pad", description: "A warm pad can ease cramps and relax tight muscles." },
-  { title: "Gentle Exercise", description: "A short walk or light stretch can boost comfort and mood." },
-  { title: "Healthy Meals", description: "Choose nourishing meals rich in iron, fiber, and hydration." },
-  { title: "Proper Rest", description: "Give yourself extra rest when your body needs recovery." },
+  { title: "Electrolyte Hydration", description: "Optimize cellular water retention and alleviate sluggishness." },
+  { title: "Localized Thermal Relief", description: "Apply steady warmth to calm hyperactive pelvic muscle fibers." },
+  { title: "Low-Impact Mobility", description: "Gentle spinal flexion stimulates pelvic circulation and endorphins." },
+  { title: "Micro-Nutrient Intake", description: "Prioritize bioavailable iron, magnesium, and anti-inflammatory fats." },
+  { title: "Restorative Sleep", description: "Align nighttime schedules with higher physiological recovery demands." },
 ];
 
 function MenstrualWellness() {
@@ -44,7 +44,7 @@ function MenstrualWellness() {
       const response = await getFavorites();
       setFavorites(response.favorites || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to load favorites");
+      setError(err.response?.data?.message || "Unable to load saved items");
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +77,7 @@ function MenstrualWellness() {
       if (isAlreadyFavorite) {
         const favorite = favorites.find((item) => item.itemId === tipId);
         await removeFavorite(favorite._id);
-        toast.success("Favorite Removed 💔");
+        toast.success("Removed from saved library");
       } else {
         await addFavorite({
           itemId: tipId,
@@ -86,44 +86,66 @@ function MenstrualWellness() {
           category: tip.category,
           source: "menstrual",
         });
-        toast.success("Favorite Added ❤️");
+        toast.success("Saved to your library");
       }
       await loadFavorites();
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to update favorite");
+      setError(err.response?.data?.message || "Unable to update saved status");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8effa] p-6 sm:p-8">
-      <div className="mx-auto max-w-6xl">
-        <SectionTitle title="Menstrual Wellness" themeColor="text-[#b85ca8]" />
-
-        <div className="mb-8 rounded-3xl border border-[#e9d6ef] bg-gradient-to-r from-[#f3dff5] to-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-[#9b3f86]">Cycle Facts</h2>
-          <p className="mt-2 text-sm text-gray-700 sm:text-base">{featuredFact}</p>
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Header Banner */}
+        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Hormonal Health &amp; Cycle Intelligence</span>
+              </div>
+              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
+                Menstrual Health &amp; Cycle Care
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-[#4F4A45]">
+                Phase-by-phase symptom analysis, hormonal rhythms, and evidence-informed relief strategies.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <SearchBar
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search menstrual tips..."
-          inputClassName="mb-8 border-[#e5c8e8] focus:ring-2 focus:ring-[#d78ed7]"
-        />
+        {/* Clinical Note Highlight */}
+        <div className="rounded-xl border border-[#EDE6E2] bg-[#F6EFEA]/80 p-5 shadow-xs flex items-start gap-3.5">
+          <Info className="h-5 w-5 shrink-0 text-[#8C3737] mt-0.5" />
+          <div>
+            <h3 className="font-serif text-sm font-semibold text-[#1E1B18]">Physiological Rhythm Insight</h3>
+            <p className="mt-1 text-xs leading-relaxed text-[#4F4A45]">{featuredFact}</p>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <SearchBar
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search cycle guides..."
+          />
+          <span className="text-xs text-[#78726B] font-medium">{filteredTips.length} protocols available</span>
+        </div>
+
+        {error && <p className="rounded-lg bg-[#FDF2F2] border border-[#BA2626]/20 p-3 text-xs text-[#BA2626]">{error}</p>}
 
         <CategoryFilter
           categories={categories}
           selectedCategory={category}
           onCategoryChange={setCategory}
-          activeClassName="bg-[#c56cb8] text-white"
-          inactiveClassName="border border-[#e5c8e8] bg-white text-[#9b3f86] hover:bg-[#f8ebf8]"
         />
 
-        {error && <p className="mb-4 rounded-2xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
-
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {/* Cards Grid */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
-            <LoadingSpinner label="Loading favorites..." className="col-span-full" />
+            <LoadingSpinner label="Synchronizing records..." className="col-span-full" />
           ) : (
             filteredTips.map((tip) => (
               <WellnessCard
@@ -134,21 +156,25 @@ function MenstrualWellness() {
                 isFavorite={favorites.some((favorite) => favorite.itemId === tip.id.toString())}
                 onToggleFavorite={() => toggleFavorite(tip)}
                 onReadMore={() => setSelectedTip(tip)}
-                themeColor="text-[#b85ca8]"
-                buttonClass="border-[#e5c8e8] text-[#9b3f86] hover:bg-[#f8ebf8]"
-                badgeClass="bg-[#f7e7f7] text-[#9b3f86]"
+                themeColor="text-[#1E1B18]"
+                buttonClass="border-[#EDE6E2] text-[#1E1B18] hover:bg-[#F6EFEA]"
+                badgeClass="bg-[#F6EFEA] text-[#8C3737]"
               />
             ))
           )}
         </div>
 
-        <div className="mt-10">
-          <h2 className="mb-4 text-2xl font-semibold text-[#9b3f86]">Quick Period Care</h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {quickCareTips.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-[#efd8ef] bg-white p-4 shadow-sm">
-                <h3 className="font-semibold text-[#b85ca8]">{item.title}</h3>
-                <p className="mt-2 text-sm text-gray-600">{item.description}</p>
+        {/* Immediate Relief Protocols */}
+        <div className="mt-10 rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
+          <h2 className="font-serif text-lg font-bold text-[#1E1B18] mb-4">
+            Immediate Comfort &amp; Support Guidelines
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {quickCareTips.map((item, idx) => (
+              <div key={item.title} className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-3.5">
+                <span className="text-[10px] font-bold text-[#8C3737]">0{idx + 1}</span>
+                <h3 className="font-serif text-xs font-semibold text-[#1E1B18] mt-1">{item.title}</h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#4F4A45]">{item.description}</p>
               </div>
             ))}
           </div>

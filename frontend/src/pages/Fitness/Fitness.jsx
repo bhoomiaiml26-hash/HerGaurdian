@@ -1,11 +1,9 @@
-import { motion } from "framer-motion";
-import { Activity, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Activity, Dumbbell } from "lucide-react";
 import toast from "react-hot-toast";
 import HealthTipModal from "../../components/common/HealthTipModal";
 import CategoryFilter from "../../components/common/CategoryFilter";
 import SearchBar from "../../components/common/SearchBar";
-import SectionTitle from "../../components/common/SectionTitle";
 import WellnessCard from "../../components/common/WellnessCard";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import detailedExercises from "../../data/detailedExercises";
@@ -26,7 +24,7 @@ function Fitness() {
       const response = await getFavorites();
       setFavorites(response.favorites || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to load favorites");
+      setError(err.response?.data?.message || "Unable to load saved items");
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +58,7 @@ function Fitness() {
       if (isAlreadyFavorite) {
         const favorite = favorites.find((item) => item.itemId === tipId);
         await removeFavorite(favorite._id);
-        toast.success("Favorite Removed 💔");
+        toast.success("Removed from saved library");
       } else {
         await addFavorite({
           itemId: tipId,
@@ -69,63 +67,74 @@ function Fitness() {
           category: tip.category,
           source: "fitness",
         });
-        toast.success("Favorite Added ❤️");
+        toast.success("Saved to your library");
       }
       await loadFavorites();
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to update favorite");
+      setError(err.response?.data?.message || "Unable to update saved status");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(239,246,255,0.8),_transparent_40%),linear-gradient(135deg,_#f5faff_0%,_#eef7ff_100%)] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="mb-8 rounded-[28px] border border-blue-100 bg-white/80 p-6 shadow-[0_20px_60px_rgba(37,99,235,0.08)] backdrop-blur sm:p-8">
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Header Banner */}
+        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
-                <Activity className="h-4 w-4" />
-                Fitness motivation
+              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+                <Activity className="h-3.5 w-3.5" />
+                <span>Functional Movement &amp; Strength</span>
               </div>
-              <SectionTitle title="Fitness & Active Lifestyle" themeColor="text-blue-700" subtitle="Build strength, movement, and healthy habits with simple fitness tips." />
-            </div>
-            <div className="rounded-2xl bg-blue-50 p-3 text-blue-600">
-              <Sparkles className="h-6 w-6" />
+              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
+                Functional Fitness &amp; Conditioning
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-[#4F4A45]">
+                Physiologically calibrated training routines designed for bone density, core stability, and endurance.
+              </p>
             </div>
           </div>
-        </motion.div>
-
-        {dailyWorkout && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mb-8 rounded-[28px] border border-blue-200 bg-gradient-to-r from-blue-600 to-cyan-500 p-6 text-white shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-100">Workout of the Day</p>
-                <h2 className="mt-2 text-2xl font-bold">{dailyWorkout.title}</h2>
-                <p className="mt-2 max-w-2xl text-sm text-blue-50 sm:text-base">{dailyWorkout.description}</p>
-              </div>
-              <span className="rounded-full bg-white/20 px-3 py-1 text-sm font-medium">{dailyWorkout.category}</span>
-            </div>
-          </motion.div>
-        )}
-
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <SearchBar value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search certified exercises..." inputClassName="mb-0 border-blue-200 focus:ring-2 focus:ring-blue-400" />
-          <p className="text-sm text-slate-500">{filteredTips.length} certified exercise routines available</p>
         </div>
 
-        {error && <p className="mb-4 rounded-2xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
+        {/* Daily Protocol Highlight */}
+        {dailyWorkout && (
+          <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Dumbbell className="h-4 w-4 text-[#8C3737]" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#78726B]">Suggested Session</p>
+              </div>
+              <h2 className="mt-1 font-serif text-lg font-bold text-[#1E1B18]">{dailyWorkout.title}</h2>
+              <p className="mt-1 text-xs leading-relaxed text-[#4F4A45] max-w-2xl">{dailyWorkout.description}</p>
+            </div>
+            <span className="self-start sm:self-auto rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+              {dailyWorkout.category}
+            </span>
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <SearchBar
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search exercises by focus..."
+          />
+          <span className="text-xs text-[#78726B] font-medium">{filteredTips.length} routines available</span>
+        </div>
+
+        {error && <p className="rounded-lg bg-[#FDF2F2] border border-[#BA2626]/20 p-3 text-xs text-[#BA2626]">{error}</p>}
 
         <CategoryFilter
           categories={categories}
           selectedCategory={category}
           onCategoryChange={setCategory}
-          activeClassName="bg-blue-600 text-white"
-          inactiveClassName="border border-blue-200 bg-white text-blue-700 hover:bg-blue-100"
         />
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {/* Cards Grid */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
-            <LoadingSpinner label="Loading favorites..." className="col-span-full" />
+            <LoadingSpinner label="Synchronizing records..." className="col-span-full" />
           ) : (
             filteredTips.map((tip) => (
               <WellnessCard
@@ -137,9 +146,9 @@ function Fitness() {
                 isFavorite={favorites.some((favorite) => favorite.itemId === tip.id.toString())}
                 onToggleFavorite={() => toggleFavorite(tip)}
                 onReadMore={() => setSelectedTip(tip)}
-                themeColor="text-blue-700"
-                buttonClass="border-blue-200 text-blue-700 hover:bg-blue-50"
-                badgeClass="bg-blue-100 text-blue-700"
+                themeColor="text-[#1E1B18]"
+                buttonClass="border-[#EDE6E2] text-[#1E1B18] hover:bg-[#F6EFEA]"
+                badgeClass="bg-[#F6EFEA] text-[#8C3737]"
               />
             ))
           )}

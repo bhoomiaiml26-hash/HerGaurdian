@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, ExternalLink } from 'lucide-react';
+import { Heart, ExternalLink, Quote } from 'lucide-react';
 import { inspirationQuotes } from '../../data/inspirationQuotes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -37,23 +37,23 @@ const QuoteOfTheDayWidget = () => {
 
     const timer = window.setTimeout(() => {
       void (async () => {
-          try {
-            const token = localStorage.getItem('token');
-            if (!token || !API_BASE_URL) return;
+        try {
+          const token = localStorage.getItem('token');
+          if (!token || !API_BASE_URL) return;
 
-            const response = await fetch(`${API_BASE_URL}/favorites`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
+          const response = await fetch(`${API_BASE_URL}/favorites`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
 
-            if (response.ok) {
-              const data = await response.json();
-              const favorites = data.data || [];
-              const favorited = favorites.some((fav) => fav.contentId === quote.id && fav.category === 'Quote');
-              setIsFavorited(favorited);
-            }
-          } catch (error) {
-            console.error('Error checking favorites:', error);
+          if (response.ok) {
+            const data = await response.json();
+            const favorites = data.data || [];
+            const favorited = favorites.some((fav) => fav.contentId === quote.id && fav.category === 'Quote');
+            setIsFavorited(favorited);
           }
+        } catch (error) {
+          console.error('Error checking favorites:', error);
+        }
       })();
     }, 0);
 
@@ -102,34 +102,37 @@ const QuoteOfTheDayWidget = () => {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-blue-50 to-pink-50 border-2 border-gradient-to-r from-blue-200 to-pink-200 rounded-2xl p-6 shadow-lg"
+      className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs"
     >
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">✨</span>
-          <h3 className="text-lg font-bold text-gray-800">Quote of the Day</h3>
+          <Quote className="h-4 w-4 text-[#8C3737]" />
+          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-[#78726B]">Daily Reflection</h3>
         </div>
         <button
           onClick={handleToggleFavorite}
-          className="transition-transform hover:scale-110"
+          className="rounded-md p-1 text-[#78726B] hover:text-[#8C3737] transition-colors"
+          title={isFavorited ? 'Remove from Saved' : 'Save Quote'}
         >
           <Heart
-            size={20}
-            className={isFavorited ? 'fill-pink-500 text-pink-500' : 'text-gray-400'}
+            size={18}
+            className={isFavorited ? 'fill-[#8C3737] text-[#8C3737]' : 'currentColor'}
           />
         </button>
       </div>
 
-      <p className="text-gray-700 italic mb-3">"{quote.text}"</p>
-      <p className="text-gray-600 text-sm mb-4">— {quote.author}</p>
+      <p className="font-serif text-base italic leading-relaxed text-[#1E1B18] sm:text-lg">"{quote.text}"</p>
+      <p className="mt-2 text-xs font-medium text-[#78726B]">— {quote.author}</p>
 
-      <a
-        href="/inspiration"
-        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold text-sm"
-      >
-        Explore More
-        <ExternalLink size={16} />
-      </a>
+      <div className="mt-4 pt-3 border-t border-[#EDE6E2]">
+        <a
+          href="/inspiration"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8C3737] hover:underline"
+        >
+          Explore Reflection Library
+          <ExternalLink size={13} />
+        </a>
+      </div>
     </motion.div>
   );
 };

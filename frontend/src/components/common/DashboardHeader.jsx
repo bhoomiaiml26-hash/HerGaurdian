@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { ShieldCheck } from "lucide-react";
 
 function DashboardHeader({ user }) {
   const greeting = useMemo(() => {
@@ -9,13 +10,23 @@ function DashboardHeader({ user }) {
   }, []);
 
   return (
-    <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-3xl p-8 shadow-lg">
-      <h1 className="text-4xl font-bold">
-        {greeting}, {user?.name}! 🌸
-      </h1>
-      <p className="mt-2 text-pink-100">
-        Your personal AI companion for women's wellness.
-      </p>
+    <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
+            {greeting}, {user?.name || "Member"}
+          </h1>
+          <p className="mt-1 text-sm text-[#4F4A45]">
+            Real-time safety status, health metrics, and emergency contacts overview.
+          </p>
+        </div>
+
+        <div className="inline-flex items-center gap-2 self-start sm:self-auto rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] px-3 py-1.5 text-xs font-medium text-[#4F4A45]">
+          <span className="flex h-2 w-2 rounded-full bg-[#286646]" />
+          <ShieldCheck className="h-3.5 w-3.5 text-[#286646]" />
+          <span>Protection Network Active</span>
+        </div>
+      </div>
     </div>
   );
 }

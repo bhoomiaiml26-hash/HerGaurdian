@@ -21,25 +21,25 @@ function QuickStats() {
   }, []);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-      <div className="bg-white rounded-2xl shadow-md p-5 text-center">
-        <h3 className="text-pink-600 font-semibold text-sm">Modules</h3>
-        <p className="text-3xl font-bold mt-2 text-gray-800">12</p>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+      <div className="rounded-xl border border-[#EDE6E2] bg-white p-5 text-center shadow-xs">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#78726B]">Active Modules</h3>
+        <p className="font-serif text-2xl font-bold mt-2 text-[#1E1B18]">12</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md p-5 text-center">
-        <h3 className="text-pink-600 font-semibold text-sm">Saved Items</h3>
-        <p className="text-3xl font-bold mt-2 text-gray-800">{stats.savedItems}</p>
+      <div className="rounded-xl border border-[#EDE6E2] bg-white p-5 text-center shadow-xs">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#78726B]">Saved Protocols</h3>
+        <p className="font-serif text-2xl font-bold mt-2 text-[#8C3737]">{stats.savedItems}</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md p-5 text-center">
-        <h3 className="text-pink-600 font-semibold text-sm">Reminders</h3>
-        <p className="text-3xl font-bold mt-2 text-gray-800">{stats.reminders}</p>
+      <div className="rounded-xl border border-[#EDE6E2] bg-white p-5 text-center shadow-xs">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#78726B]">Active Reminders</h3>
+        <p className="font-serif text-2xl font-bold mt-2 text-[#8C3737]">{stats.reminders}</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-md p-5 text-center">
-        <h3 className="text-pink-600 font-semibold text-sm">AI Status</h3>
-        <p className="text-xl font-bold mt-2 text-green-600">Active ✓</p>
+      <div className="rounded-xl border border-[#EDE6E2] bg-white p-5 text-center shadow-xs">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#78726B]">System Status</h3>
+        <p className="font-serif text-base font-bold mt-2 text-[#286646]">Operational</p>
       </div>
     </div>
   );

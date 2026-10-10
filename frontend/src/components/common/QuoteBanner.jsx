@@ -1,19 +1,15 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
-import womenQuotes from "../../data/womenQuotes";
 
 function QuoteBanner() {
-  const [quote] = useState(() => womenQuotes[Math.floor(Math.random() * womenQuotes.length)]);
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8 }}
-      className="mx-auto mt-8 w-11/12 max-w-5xl rounded-2xl bg-pink-100 p-6 shadow-lg"
+      transition={{ duration: 0.6 }}
+      className="mx-auto mt-4 mb-16 w-11/12 max-w-4xl rounded-xl border border-[#EDE6E2] bg-[#F6EFEA] p-5 sm:p-6 shadow-xs text-center"
     >
-      <p className="text-center text-lg italic text-pink-700">
-        "{quote}"
+      <p className="font-serif text-base sm:text-lg italic text-[#8C3737] tracking-wide">
+        &ldquo;Confidence is the most beautiful thing a woman can wear.&rdquo;
       </p>
     </motion.div>
   );

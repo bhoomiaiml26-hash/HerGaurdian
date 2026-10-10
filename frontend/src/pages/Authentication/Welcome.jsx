@@ -11,28 +11,17 @@ import Footer from "../../components/footer/Footer";
 
 function Welcome() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-pink-100">
-
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18]">
       <Navbar />
-
       <HeroSection />
-
       <QuoteBanner />
-
       <WomenIllustration />
-
       <WhyChoose />
-
-      <Testimonials />
-
       <Statistics />
-
+      <Testimonials />
       <AboutSection />
-
       <FAQ />
-
       <Footer />
-
     </div>
   );
 }

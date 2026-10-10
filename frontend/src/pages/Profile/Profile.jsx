@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BadgeCheck, Settings, UserRound } from "lucide-react";
+import { BadgeCheck, Settings, UserRound, ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -47,35 +47,29 @@ function Profile() {
     localStorage.setItem("user", JSON.stringify(user));
   }, [user]);
 
-  const stats = useMemo(() => {
-    return [
-      { label: "Total Saved Library", value: counts.savedTips },
-      { label: "Active Reminders", value: counts.healthReminders },
-      { label: "Saved Health Tips", value: counts.healthFavorites },
-      { label: "Saved Nutrition Tips", value: counts.nutritionFavorites },
-      { label: "Saved Fitness Tips", value: counts.fitnessFavorites },
-      { label: "Saved Menstrual Tips", value: counts.menstrualFavorites },
-    ];
-  }, [counts]);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
+  const stats = useMemo(
+    () => [
+      { label: "Saved Items", value: counts.savedTips },
+      { label: "Health Reminders", value: counts.healthReminders },
+      { label: "Health Favorites", value: counts.healthFavorites },
+      { label: "Nutrition Saves", value: counts.nutritionFavorites },
+      { label: "Fitness Saves", value: counts.fitnessFavorites },
+      { label: "Cycle Saves", value: counts.menstrualFavorites },
+    ],
+    [counts]
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void (async () => {
-        const token = localStorage.getItem("token");
-        if (!token) return;
+      setIsLoading(true);
 
-        setIsLoading(true);
+      (async () => {
         try {
-          const profile = await getProfile();
-          const profileUser = profile.user;
-          setUser(profileUser);
-          setForm(profileUser);
-          localStorage.setItem("user", JSON.stringify(profileUser));
+          const profileRes = await getProfile();
+          if (profileRes?.user) {
+            setUser((prev) => ({ ...prev, ...profileRes.user }));
+            setForm((prev) => ({ ...prev, ...profileRes.user }));
+          }
 
           const favResponse = await getFavorites();
           const favs = favResponse.favorites || [];
@@ -101,6 +95,10 @@ function Profile() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
   const saveProfile = (event) => {
     event.preventDefault();
     setUser(form);
@@ -110,87 +108,110 @@ function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7ff] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl rounded-[32px] border border-[#dfe4ff] bg-white p-5 shadow-[0_20px_60px_rgba(94,111,189,0.12)] sm:p-8">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="rounded-[24px] bg-gradient-to-r from-[#5f73ea] to-[#8f7bec] p-6 text-white shadow-lg">
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs"
+        >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-sm font-semibold backdrop-blur">
-                <BadgeCheck className="h-4 w-4" />
-                Personal wellness profile
+              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+                <BadgeCheck className="h-3.5 w-3.5" />
+                <span>Member Profile</span>
               </div>
-              <h1 className="text-3xl font-bold sm:text-4xl">Profile & Settings</h1>
-              <p className="mt-2 text-sm text-white/90 sm:text-base">Manage your profile, preferences, and wellness overview.</p>
+              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
+                Profile &amp; Settings
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-[#4F4A45]">
+                Manage your personal information and review your wellness activity.
+              </p>
             </div>
-            <div className="rounded-2xl bg-white/15 p-3">
-              <Settings className="h-6 w-6" />
+            <div className="rounded-lg border border-[#EDE6E2] p-2.5 text-[#78726B]">
+              <Settings className="h-5 w-5" />
             </div>
           </div>
         </motion.div>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          {/* Left Column */}
           <div className="space-y-6">
-            <section className="rounded-[24px] border border-[#e4e8ff] bg-[#fbfcff] p-5 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Profile Identity Card */}
+            <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#5f73ea] to-[#b48ef5] text-2xl font-semibold text-white">
-                    {user.avatar ? <img src={user.avatar} alt={user.name} className="h-full w-full rounded-full object-cover" /> : <UserRound className="h-7 w-7" />}
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#F6EFEA] text-[#8C3737]">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.name} className="h-full w-full rounded-full object-cover" />
+                    ) : (
+                      <UserRound className="h-6 w-6" />
+                    )}
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-[#4d5fd2]">{user.name}</h2>
-                    <p className="text-sm text-gray-600">{user.profession}</p>
+                    <h2 className="font-serif text-lg font-semibold text-[#1E1B18]">{user.name}</h2>
+                    <p className="text-xs text-[#78726B]">{user.profession || "Member"}</p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="rounded-full bg-[#5f73ea] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#4d63d6]"
+                  onClick={() => {
+                    setForm({ ...user });
+                    setIsEditing(true);
+                  }}
+                  className="rounded-lg bg-[#8C3737] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#752B2B]"
                 >
                   Edit Profile
                 </button>
               </div>
 
-              {isLoading && <p className="mt-4 text-sm text-gray-500">Loading profile…</p>}
+              {isLoading && (
+                <p className="mt-4 text-xs text-[#78726B]">Loading profile data…</p>
+              )}
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "Name", value: user.name },
                   { label: "Age", value: user.age },
                   { label: "Country", value: user.country },
                   { label: "Profession", value: user.profession },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-[18px] border border-[#e8ebff] bg-white p-3">
-                    <p className="text-sm text-gray-500">{item.label}</p>
-                    <p className="mt-1 font-semibold text-[#4d5fd2]">{item.value}</p>
+                  <div key={item.label} className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-3.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#78726B]">{item.label}</p>
+                    <p className="mt-1 text-sm font-semibold text-[#1E1B18]">{item.value || "Not set"}</p>
                   </div>
                 ))}
               </div>
             </section>
 
+            {/* Activity Statistics */}
+            <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
+              <h2 className="font-serif text-base font-semibold text-[#1E1B18] mb-4">Activity Overview</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {stats.map((item) => (
+                  <div key={item.label} className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-[#78726B]">{item.label}</p>
+                    <p className="mt-1 font-serif text-2xl font-bold text-[#1E1B18]">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
 
-          <div className="space-y-6">
-            <section className="rounded-[24px] border border-[#e4e8ff] bg-[#fbfcff] p-5 shadow-sm">
-              <h2 className="text-xl font-semibold text-[#4d5fd2]">Account Statistics</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {stats.map((item) => (
-                  <div key={item.label} className="rounded-[18px] border border-[#e8ebff] bg-white p-4">
-                    <p className="text-sm text-gray-500">{item.label}</p>
-                    <p className="mt-1 text-xl font-semibold text-[#4d5fd2]">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-[24px] border border-[#e4e8ff] bg-[#fbfcff] p-5 shadow-sm">
-              <h2 className="text-xl font-semibold text-[#4d5fd2]">Quick Navigation</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {/* Right Column */}
+          <div>
+            <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
+              <h2 className="font-serif text-base font-semibold text-[#1E1B18] mb-4">Quick Navigation</h2>
+              <div className="space-y-2">
                 {navigationItems.map((item) => (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className="rounded-[18px] border border-[#e8ebff] bg-white px-4 py-3 text-sm font-medium text-[#4d5fd2] transition hover:bg-[#f3f6ff]"
+                    className="flex items-center justify-between rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] px-4 py-3 text-xs font-medium text-[#4F4A45] transition hover:border-[#8C3737]/30 hover:bg-[#F6EFEA] hover:text-[#1E1B18]"
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    <ArrowRight className="h-3.5 w-3.5 text-[#78726B]" />
                   </Link>
                 ))}
               </div>
@@ -199,68 +220,60 @@ function Profile() {
         </div>
       </div>
 
+      {/* Edit Profile Modal */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-lg rounded-[24px] bg-white p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-[#4d5fd2]">Edit Profile</h3>
-            <form onSubmit={saveProfile} className="mt-4 space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-[#dfe4ff] px-4 py-3 outline-none focus:ring-2 focus:ring-[#7b8cee]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Age</label>
-                <input
-                  type="number"
-                  name="age"
-                  value={form.age}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-[#dfe4ff] px-4 py-3 outline-none focus:ring-2 focus:ring-[#7b8cee]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Country</label>
-                <input
-                  type="text"
-                  name="country"
-                  value={form.country}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-[#dfe4ff] px-4 py-3 outline-none focus:ring-2 focus:ring-[#7b8cee]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">Profession</label>
-                <input
-                  type="text"
-                  name="profession"
-                  value={form.profession}
-                  onChange={handleChange}
-                  className="w-full rounded-2xl border border-[#dfe4ff] px-4 py-3 outline-none focus:ring-2 focus:ring-[#7b8cee]"
-                />
-              </div>
-              <div className="flex justify-end gap-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1E1B18]/60 backdrop-blur-xs px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-md rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xl"
+          >
+            <div className="flex items-center justify-between border-b border-[#EDE6E2] pb-4">
+              <h3 className="font-serif text-lg font-bold text-[#1E1B18]">Edit Profile</h3>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="rounded-lg p-1.5 text-[#78726B] hover:bg-[#F6EFEA] hover:text-[#1E1B18]"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={saveProfile} className="mt-5 space-y-4">
+              {[
+                { label: "Name", name: "name", type: "text" },
+                { label: "Age", name: "age", type: "number" },
+                { label: "Country", name: "country", type: "text" },
+                { label: "Profession", name: "profession", type: "text" },
+              ].map((field) => (
+                <div key={field.name}>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#4F4A45] mb-1.5">
+                    {field.label}
+                  </label>
+                  <input
+                    type={field.type}
+                    name={field.name}
+                    value={form[field.name] || ""}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-[#EDE6E2] bg-white px-3.5 py-2.5 text-sm text-[#1E1B18] focus:border-[#8C3737] focus:outline-none"
+                  />
+                </div>
+              ))}
+              <div className="flex justify-end gap-2.5 pt-4 border-t border-[#EDE6E2]">
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="rounded-full border border-[#dfe4ff] px-4 py-2 text-sm font-semibold text-gray-600"
+                  className="rounded-lg border border-[#EDE6E2] px-4 py-2 text-xs font-semibold text-[#4F4A45] hover:bg-[#F6EFEA]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full bg-[#5f73ea] px-4 py-2 text-sm font-semibold text-white"
+                  className="rounded-lg bg-[#8C3737] px-4 py-2 text-xs font-semibold text-white hover:bg-[#752B2B]"
                 >
-                  Save
+                  Save Changes
                 </button>
               </div>
             </form>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

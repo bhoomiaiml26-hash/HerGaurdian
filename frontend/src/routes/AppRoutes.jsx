@@ -72,9 +72,9 @@ function AppRoutesContent() {
 
 function RouteFallback() {
   return (
-    <div className="min-h-screen bg-slate-50 p-6 sm:p-8">
-      <div className="mx-auto max-w-6xl rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <LoadingSpinner label="Preparing your wellness experience..." />
+    <div className="min-h-screen bg-[#FBF9F7] p-6 sm:p-8">
+      <div className="mx-auto max-w-6xl rounded-2xl border border-[#EDE6E2] bg-white p-8 shadow-xs">
+        <LoadingSpinner label="Loading module..." />
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <SkeletonCard />
           <SkeletonCard />

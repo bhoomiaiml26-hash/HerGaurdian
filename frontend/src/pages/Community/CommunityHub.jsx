@@ -7,35 +7,31 @@ import {
   HeartHandshake,
   Phone,
   ShieldCheck,
-  Sparkles,
   Users,
 } from 'lucide-react';
 import ShareButton from '../../components/common/ShareButton';
 import womenEmpowermentOrgs, { womenEmpowermentSchemes } from '../../data/womenEmpowermentOrgs';
 
 function CommunityHub() {
-  const pageTitle = 'Women Empowerment';
-  const pageSummary = 'Explore trusted organizations, schemes, and impact programs designed for women’s safety, financial security, and leadership.';
+  const pageTitle = 'Advocacy Network & Verified Resources';
+  const pageSummary = 'Accredited non-profits, statutory schemes, and emergency legal advocacy for women.';
 
   const overviewCards = useMemo(
     () => [
       {
-        label: 'Trusted organizations',
+        label: 'Accredited Organizations',
         value: womenEmpowermentOrgs.length,
         icon: Users,
-        gradient: 'from-fuchsia-500 to-pink-500',
       },
       {
-        label: 'Government schemes',
+        label: 'Statutory Welfare Schemes',
         value: womenEmpowermentSchemes.length,
         icon: ShieldCheck,
-        gradient: 'from-cyan-500 to-blue-500',
       },
       {
-        label: 'Support helpline',
-        value: 181,
+        label: 'Dedicated Helpline',
+        value: '181',
         icon: Phone,
-        gradient: 'from-amber-500 to-orange-500',
       },
     ],
     [],
@@ -49,69 +45,66 @@ function CommunityHub() {
   const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://herguardian.ai/community';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-blue-50 p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-10">
-        <motion.header
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="rounded-[32px] border border-pink-100 bg-white/90 p-8 shadow-xl shadow-pink-200/20"
-        >
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        {/* Header Banner */}
+        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-pink-100 px-4 py-2 text-sm font-semibold text-pink-700">
-                <Sparkles className="h-4 w-4" />
-                Women Empowerment
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Verified Legal &amp; Welfare Directory</span>
               </div>
-              <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-                Empower women with trusted support, programs, and advocacy.
+              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl lg:text-4xl">
+                Advocacy Network &amp; Verified Support Programs
               </h1>
-              <p className="max-w-3xl text-lg leading-8 text-slate-600">
-                {pageSummary} Discover legal support, financial schemes, grassroots NGOs, and practical resources built to uplift women across communities.
+              <p className="max-w-3xl text-xs sm:text-sm leading-relaxed text-[#4F4A45]">
+                {pageSummary} Access direct contact channels for crisis centers, legal aid cells, financial security grants, and grassroots shelters.
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px]">
+            <div className="flex flex-wrap sm:flex-nowrap gap-3 xl:w-[380px]">
               <ShareButton title={pageTitle} text={pageSummary} url={shareUrl} className="w-full" />
               <a
-                href="mailto:support@herguardian.ai?subject=Women Empowerment Support"
-                className="inline-flex items-center justify-center rounded-full border border-pink-200 bg-pink-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-pink-700"
+                href="mailto:support@herguardian.ai?subject=Advocacy Network Inquiry"
+                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#8C3737] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#752B2B]"
               >
-                <HeartHandshake className="mr-2 h-4 w-4" /> Contact Support
+                <HeartHandshake className="h-3.5 w-3.5" /> Support Desk
               </a>
             </div>
           </div>
-        </motion.header>
+        </div>
 
-        <section className="grid gap-5 sm:grid-cols-3">
+        {/* Metric Cards */}
+        <section className="grid gap-4 sm:grid-cols-3">
           {overviewCards.map((card) => {
             const Icon = card.icon;
             return (
-              <motion.div
+              <div
                 key={card.label}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className={`rounded-[28px] border border-slate-200 bg-gradient-to-br ${card.gradient} p-6 text-white shadow-xl shadow-slate-200/20`}
+                className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs flex items-center justify-between"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-                  <Icon className="h-6 w-6" />
+                <div>
+                  <p className="text-xs font-medium text-[#78726B]">{card.label}</p>
+                  <p className="mt-1 font-serif text-2xl font-bold text-[#1E1B18]">{card.value}</p>
                 </div>
-                <p className="mt-6 text-sm uppercase tracking-[0.24em] text-white/80">{card.label}</p>
-                <p className="mt-4 text-4xl font-bold">{card.value}</p>
-              </motion.div>
+                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#F6EFEA] text-[#8C3737]">
+                  <Icon className="h-5 w-5" />
+                </span>
+              </div>
             );
           })}
         </section>
 
-        <section className="rounded-[32px] border border-slate-200 bg-white/90 p-8 shadow-xl shadow-slate-200/20">
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        {/* Organizations Section */}
+        <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-[#EDE6E2] pb-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">Featured organizations</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">Leading women empowerment partners</h2>
+              <h2 className="font-serif text-xl font-bold text-[#1E1B18]">Accredited Partner Organizations</h2>
+              <p className="mt-1 text-xs text-[#78726B]">Vetted non-governmental agencies offering emergency shelter, legal counseling, and career training.</p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {focusAreas.map((area) => (
-                <span key={area} className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+                <span key={area} className="rounded-md border border-[#EDE6E2] bg-[#FBF9F7] px-2.5 py-1 text-[11px] font-medium text-[#4F4A45]">
                   {area}
                 </span>
               ))}
@@ -119,186 +112,147 @@ function CommunityHub() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {womenEmpowermentOrgs.map((org, idx) => (
-              <motion.article
+            {womenEmpowermentOrgs.map((org) => (
+              <article
                 key={org.id}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.08 }}
-                viewport={{ once: true }}
-                className="overflow-hidden rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-lg"
+                className="flex flex-col justify-between rounded-xl border border-[#EDE6E2] bg-[#FBF9F7] p-6 transition hover:border-[#8C3737]/30"
               >
-                <div className="flex flex-col gap-4 p-6 sm:p-8">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-100">
-                      {org.logo ? <img src={org.logo} alt={`${org.name} logo`} className="h-10 w-10 object-contain" /> : <Users className="h-8 w-8 text-slate-500" />}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white border border-[#EDE6E2] shrink-0">
+                      {org.logo ? <img src={org.logo} alt={`${org.name} logo`} className="h-8 w-8 object-contain" /> : <Users className="h-5 w-5 text-[#8C3737]" />}
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold text-slate-900">{org.name}</h3>
-                      <p className="text-sm text-slate-500">{org.location}</p>
+                      <h3 className="font-serif text-base font-semibold text-[#1E1B18]">{org.name}</h3>
+                      <p className="text-xs text-[#78726B]">{org.location}</p>
                     </div>
                   </div>
-                  <p className="text-slate-600">{org.description}</p>
+
+                  <p className="text-xs leading-relaxed text-[#4F4A45]">{org.description}</p>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-3xl bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Mission</p>
-                      <p className="mt-2 text-sm text-slate-700">{org.mission}</p>
+                    <div className="rounded-lg border border-[#EDE6E2] bg-white p-3">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-[#78726B]">Mission</p>
+                      <p className="mt-1 text-xs text-[#4F4A45]">{org.mission}</p>
                     </div>
-                    <div className="rounded-3xl bg-slate-50 p-4">
-                      <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Vision</p>
-                      <p className="mt-2 text-sm text-slate-700">{org.vision}</p>
+                    <div className="rounded-lg border border-[#EDE6E2] bg-white p-3">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-[#78726B]">Core Services</p>
+                      <p className="mt-1 text-xs text-[#4F4A45]">{org.services.slice(0, 2).join(", ")}</p>
                     </div>
                   </div>
+                </div>
 
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {org.focusAreas?.map((area) => (
-                      <span key={area} className="rounded-full bg-pink-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-pink-700">
-                        {area}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {org.services.slice(0, 3).map((service) => (
-                      <p key={service} className="rounded-3xl bg-slate-100 p-3 text-sm text-slate-700">{service}</p>
-                    ))}
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-3">
+                <div className="mt-6 pt-4 border-t border-[#EDE6E2] flex items-center justify-between gap-2">
+                  <div className="flex gap-2">
                     <a
                       href={org.website}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      className="inline-flex items-center gap-1 rounded-lg border border-[#EDE6E2] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA]"
                     >
-                      <ExternalLink className="mr-2 h-4 w-4" /> Website
+                      <ExternalLink className="h-3 w-3" /> Website
                     </a>
                     <a
                       href={`tel:${org.contact}`}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      className="inline-flex items-center gap-1 rounded-lg border border-[#EDE6E2] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA]"
                     >
-                      <Phone className="mr-2 h-4 w-4" /> Call
-                    </a>
-                    <a
-                      href={org.volunteerLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full bg-pink-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-pink-700"
-                    >
-                      Volunteer
+                      <Phone className="h-3 w-3" /> Call
                     </a>
                   </div>
+                  <a
+                    href={org.volunteerLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#8C3737] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#752B2B]"
+                  >
+                    Volunteer / Donate
+                  </a>
                 </div>
-              </motion.article>
+              </article>
             ))}
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-slate-200 bg-white/90 p-8 shadow-xl shadow-slate-200/20">
-          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        {/* Welfare Schemes */}
+        <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#EDE6E2] pb-6">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">Support schemes</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">Government-backed programs for women</h2>
+              <h2 className="font-serif text-xl font-bold text-[#1E1B18]">Statutory Welfare &amp; Protection Programs</h2>
+              <p className="mt-1 text-xs text-[#78726B]">Official schemes offering safe housing, educational subsidies, and rehabilitation grants.</p>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
-              <BookOpen className="h-4 w-4" /> Learn, apply, and access benefits
+            <div className="inline-flex items-center gap-1.5 rounded-md bg-[#FBF9F7] border border-[#EDE6E2] px-3 py-1 text-xs text-[#4F4A45]">
+              <BookOpen className="h-3.5 w-3.5 text-[#8C3737]" /> Verified Official Portals
             </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {womenEmpowermentSchemes.map((scheme, idx) => (
-              <motion.div
+            {womenEmpowermentSchemes.map((scheme) => (
+              <div
                 key={scheme.id}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.06 }}
-                className="rounded-[28px] border border-slate-200 bg-slate-50 p-6"
+                className="flex flex-col justify-between rounded-xl border border-[#EDE6E2] bg-[#FBF9F7] p-6"
               >
-                <div className="flex items-center gap-3 text-slate-900">
-                  <ShieldCheck className="h-5 w-5 text-blue-600" />
-                  <h3 className="text-xl font-semibold">{scheme.name}</h3>
+                <div>
+                  <div className="flex items-center gap-2.5 text-[#1E1B18]">
+                    <ShieldCheck className="h-4 w-4 text-[#286646]" />
+                    <h3 className="font-serif text-base font-semibold">{scheme.name}</h3>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-[#4F4A45]">{scheme.description}</p>
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {scheme.benefits.map((benefit) => (
+                      <span key={benefit} className="rounded-md border border-[#EDE6E2] bg-white px-2.5 py-1 text-[11px] text-[#4F4A45]">
+                        {benefit}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <p className="mt-4 text-slate-600">{scheme.description}</p>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  {scheme.benefits.map((benefit) => (
-                    <span key={benefit} className="rounded-full bg-white px-3 py-2 text-sm text-slate-700">
-                      {benefit}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+                <div className="mt-6 pt-4 border-t border-[#EDE6E2] flex items-center justify-between gap-3">
                   <a
                     href={scheme.website}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                    className="inline-flex items-center gap-1 rounded-lg border border-[#EDE6E2] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA]"
                   >
-                    Visit site
+                    Official Portal
                   </a>
                   <a
                     href={`tel:${scheme.contact}`}
-                    className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    className="inline-flex items-center gap-1 rounded-lg bg-[#8C3737] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#752B2B]"
                   >
-                    Contact helpline
+                    <Phone className="h-3 w-3" /> Helpline
                   </a>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </section>
 
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="rounded-[32px] border border-slate-200 bg-gradient-to-r from-fuchsia-50 to-sky-50 p-8 shadow-xl shadow-slate-200/20"
-        >
-          <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">How to use this page</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">Find support, apply quickly, and share your journey.</h2>
-              <div className="mt-6 space-y-4 text-slate-600">
-                <p>Browse verified organizations, view support services, and connect directly via website or helpline.</p>
-                <p>Explore government schemes that offer safe housing, education savings, and rehabilitation services for women and girls.</p>
-                <p>Use the share feature to spread trusted resources with your network.</p>
-              </div>
+        {/* Guidance Instructions Panel */}
+        <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-3">
+              <h3 className="font-serif text-xl font-bold text-[#1E1B18]">Resource Navigation Protocol</h3>
+              <p className="text-xs leading-relaxed text-[#4F4A45]">
+                1. Identify the organization matching your immediate physical or legal requirement.<br />
+                2. Contact the verified helpline numbers directly from mobile or utilize the official government portal links.<br />
+                3. Keep case reference numbers and legal documents securely documented in your private records.
+              </p>
             </div>
-            <div className="rounded-[28px] bg-white p-6 shadow-lg shadow-slate-200/30">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-100 text-fuchsia-700">
-                  <ArrowRight className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-500">Action steps</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">Connect to support in minutes.</p>
-                </div>
-              </div>
-              <ul className="mt-6 space-y-4 text-slate-600">
-                <li className="flex gap-3">
-                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-pink-600" />
-                  Choose an organization that matches your need and location.
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-pink-600" />
-                  Review scheme benefits and use direct links to apply.
-                </li>
-                <li className="flex gap-3">
-                  <span className="mt-1 h-2.5 w-2.5 rounded-full bg-pink-600" />
-                  Share these trusted resources with your network.
-                </li>
-              </ul>
-              <div className="mt-6">
+
+            <div className="flex flex-col justify-center rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-5">
+              <h4 className="font-serif text-sm font-semibold text-[#1E1B18]">Share This Directory</h4>
+              <p className="mt-1 text-xs text-[#78726B]">Empower others in your network by circulating verified safety links.</p>
+              <div className="mt-4">
                 <ShareButton
-                  title="Women Empowerment Support Resources"
-                  text="Explore these trusted women empowerment organizations and government schemes to get immediate support."
+                  title="Women Advocacy & Resource Network"
+                  text="Directory of verified non-profits and government welfare schemes for women."
                   url={shareUrl}
                   className="w-full"
                 />
               </div>
             </div>
           </div>
-        </motion.section>
+        </section>
       </div>
     </div>
   );

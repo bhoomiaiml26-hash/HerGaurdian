@@ -6,7 +6,7 @@ export const emergencyHelplines = [
     description: "24/7 support for women in distress",
     phone: "+91-181",
     icon: "PhoneIcon",
-    color: "from-pink-500 to-rose-500"
+    color: "bg-[#8C3737]"
   },
   {
     id: 2,
@@ -14,7 +14,7 @@ export const emergencyHelplines = [
     description: "Immediate police assistance",
     phone: "100",
     icon: "AlertCircle",
-    color: "from-red-500 to-orange-500"
+    color: "bg-[#BA2626]"
   },
   {
     id: 3,
@@ -22,7 +22,7 @@ export const emergencyHelplines = [
     description: "Medical emergency and transport",
     phone: "102",
     icon: "Heart",
-    color: "from-blue-500 to-cyan-500"
+    color: "bg-[#286646]"
   },
   {
     id: 4,
@@ -30,7 +30,7 @@ export const emergencyHelplines = [
     description: "General emergency services",
     phone: "112",
     icon: "AlertTriangle",
-    color: "from-yellow-500 to-orange-500"
+    color: "bg-[#A85C12]"
   },
   {
     id: 5,
@@ -38,7 +38,7 @@ export const emergencyHelplines = [
     description: "Report cyber harassment and crimes",
     phone: "1930",
     icon: "Shield",
-    color: "from-purple-500 to-indigo-500"
+    color: "bg-[#66222F]"
   }
 ];
 
@@ -266,7 +266,7 @@ export const trustedResources = [
     description: "Global health authority providing evidence-based information on reproductive health, nutrition, and wellness.",
     website: "https://www.who.int",
     icon: "Globe",
-    color: "from-blue-500 to-cyan-500"
+    color: "bg-[#8C3737]"
   },
   {
     id: 2,
@@ -274,7 +274,7 @@ export const trustedResources = [
     description: "International organization supporting women and girls' health, education, and well-being worldwide.",
     website: "https://www.unicef.org",
     icon: "Users",
-    color: "from-green-500 to-emerald-500"
+    color: "bg-[#286646]"
   },
   {
     id: 3,
@@ -282,7 +282,7 @@ export const trustedResources = [
     description: "Official government health authority providing health guidelines and welfare programs for women.",
     website: "https://mohfw.gov.in",
     icon: "Home",
-    color: "from-orange-500 to-yellow-500"
+    color: "bg-[#A85C12]"
   },
   {
     id: 4,
@@ -290,7 +290,7 @@ export const trustedResources = [
     description: "National Institute of Mental Health & Neurosciences providing expert mental health guidance and resources.",
     website: "https://nimhans.ac.in",
     icon: "Brain",
-    color: "from-purple-500 to-pink-500"
+    color: "bg-[#66222F]"
   },
   {
     id: 5,
@@ -298,7 +298,7 @@ export const trustedResources = [
     description: "Global platform for women's safety information, resources, and support networks.",
     website: "https://www.stopitnow.org",
     icon: "ShieldAlert",
-    color: "from-red-500 to-pink-500"
+    color: "bg-[#BA2626]"
   },
   {
     id: 6,
@@ -306,7 +306,7 @@ export const trustedResources = [
     description: "Comprehensive resources for women's rights, legal aid, and empowerment initiatives.",
     website: "https://www.womensrights.org",
     icon: "Award",
-    color: "from-indigo-500 to-purple-500"
+    color: "bg-[#A8483B]"
   }
 ];
 

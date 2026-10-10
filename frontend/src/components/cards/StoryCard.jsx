@@ -1,121 +1,86 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, BookOpen } from 'lucide-react';
+import { Heart, BookOpen, X } from 'lucide-react';
 
 const StoryCard = ({ story, onFavorite, isFavorited }) => {
   const [showModal, setShowModal] = useState(false);
 
-  const getCategoryColor = (category) => {
-    const colors = {
-      Career: "from-blue-400 to-blue-600",
-      Health: "from-green-400 to-green-600",
-      "Personal Growth": "from-purple-400 to-purple-600",
-      Business: "from-orange-400 to-orange-600",
-      Education: "from-indigo-400 to-indigo-600",
-      "Mental Wellness": "from-pink-400 to-pink-600",
-      "Mental Health": "from-rose-400 to-rose-600",
-    };
-    return colors[category] || "from-gray-400 to-gray-600";
-  };
-
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-gradient-to-br from-white to-lavender-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-md bg-opacity-90 border border-pink-200 h-full flex flex-col"
+        viewport={{ once: true }}
+        transition={{ duration: 0.35 }}
+        className="flex flex-col justify-between rounded-xl border border-[#EDE6E2] bg-white shadow-xs p-5 transition-colors hover:border-[#8C3737]/30 h-full"
       >
-        {/* Category Banner */}
-        <div className={`h-2 bg-gradient-to-r ${getCategoryColor(story.category)}`}></div>
-
-        {/* Content */}
-        <div className="p-6 flex-1 flex flex-col">
-          {/* Category Badge */}
-          <div className="mb-3">
-            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${getCategoryColor(story.category)}`}>
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <span className="rounded-md bg-[#F6EFEA] px-2.5 py-1 text-[11px] font-semibold text-[#8C3737]">
               {story.category}
             </span>
-          </div>
-
-          {/* Title */}
-          <h3 className="text-xl font-bold text-gray-800 mb-3">{story.title}</h3>
-
-          {/* Preview */}
-          <p className="text-gray-600 text-sm flex-1 line-clamp-3 mb-4">{story.preview}</p>
-
-          {/* Author */}
-          <p className="text-sm text-gray-500 italic mb-4">— {story.author}</p>
-
-          {/* Buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-pink-500 text-white py-2 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              <BookOpen size={16} />
-              Read Story
-            </button>
             <button
               onClick={() => onFavorite(story.id)}
-              className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all"
+              className="rounded-lg border border-[#EDE6E2] p-1.5 text-[#78726B] hover:bg-[#F6EFEA] transition-colors"
+              title={isFavorited ? "Remove from saved" : "Save story"}
             >
               <Heart
-                size={20}
-                className={isFavorited ? "fill-pink-500 text-pink-500" : "text-gray-400"}
+                size={16}
+                className={isFavorited ? "fill-[#8C3737] text-[#8C3737]" : "currentColor"}
               />
             </button>
           </div>
+
+          <h3 className="font-serif text-base font-semibold text-[#1E1B18] mb-2">{story.title}</h3>
+          <p className="text-xs leading-relaxed text-[#4F4A45] line-clamp-3 mb-3">{story.preview}</p>
+          <p className="text-[11px] text-[#78726B] italic mb-4">— {story.author}</p>
         </div>
+
+        <button
+          onClick={() => setShowModal(true)}
+          className="w-full rounded-lg border border-[#EDE6E2] bg-white py-2 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA] transition-colors flex items-center justify-center gap-1.5"
+        >
+          <BookOpen size={14} className="text-[#8C3737]" />
+          Read Full Case
+        </button>
       </motion.div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[#1E1B18]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xl relative"
           >
-            <div className="p-8">
-              {/* Close Button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 rounded-lg p-1.5 text-[#78726B] hover:bg-[#F6EFEA] hover:text-[#1E1B18]"
+            >
+              <X size={18} />
+            </button>
+
+            <span className="inline-block rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737] mb-3">
+              {story.category}
+            </span>
+
+            <h2 className="font-serif text-2xl font-bold text-[#1E1B18] mb-1">{story.title}</h2>
+            <p className="text-xs text-[#78726B] italic mb-6">Documented by {story.author}</p>
+
+            <div className="text-xs sm:text-sm leading-relaxed text-[#4F4A45] whitespace-pre-wrap">
+              {story.fullStory}
+            </div>
+
+            <div className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-4 my-6">
+              <p className="font-serif text-xs italic text-[#1E1B18]">
+                Perspective: Real adversity channeled into systemic solutions and personal independence.
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-[#EDE6E2] flex justify-end">
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ✕
-              </button>
-
-              {/* Category Badge */}
-              <div className="mb-3">
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold text-white bg-gradient-to-r ${getCategoryColor(story.category)}`}>
-                  {story.category}
-                </span>
-              </div>
-
-              {/* Title */}
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">{story.title}</h2>
-
-              {/* Author */}
-              <p className="text-gray-600 italic mb-6">By {story.author}</p>
-
-              {/* Full Story */}
-              <div className="prose prose-sm max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{story.fullStory}</p>
-              </div>
-
-              {/* Inspirational Note */}
-              <div className="bg-gradient-to-r from-lavender-100 to-pink-100 p-4 rounded-xl my-6">
-                <p className="text-gray-700 font-semibold">
-                  ✨ This story reminds us that challenges can become our greatest strengths.
-                </p>
-              </div>
-
-              {/* Close Button */}
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-full bg-gradient-to-r from-blue-500 to-pink-500 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
+                className="rounded-lg bg-[#8C3737] px-5 py-2 text-xs font-semibold text-white hover:bg-[#752B2B]"
               >
                 Close
               </button>

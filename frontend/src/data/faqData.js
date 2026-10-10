@@ -1,23 +1,23 @@
 const faqData = [
   {
-    question: "Is HerGuardian AI free to use?",
+    question: "How does Emergency SOS coordinate alerts?",
     answer:
-      "Yes. The core features of HerGuardian AI are free and designed to support every woman.",
+      "When activated, the system triggers alerts with your designated emergency contacts and offers one-touch access to national emergency service helplines (112, 1091, 108).",
   },
   {
-    question: "Is my personal information secure?",
+    question: "Is my personal and health data confidential?",
     answer:
-      "Absolutely. We prioritize privacy and ensure your personal data is handled securely.",
+      "Yes. All physiological records, contact lists, and profile parameters are strictly stored securely with standard encryption and are never sold or shared with third parties.",
   },
   {
-    question: "Can I use HerGuardian AI on my mobile phone?",
+    question: "Can I use HerGuardian AI on mobile devices?",
     answer:
-      "Yes. The platform is fully responsive and works on mobile, tablet, and desktop devices.",
+      "Yes. The platform is responsive across mobile phones, tablets, and desktops with no app installation required.",
   },
   {
-    question: "What topics does HerGuardian AI cover?",
+    question: "Are the community legal and financial grants verified?",
     answer:
-      "Women's health, menstrual wellness, nutrition, fitness, mental wellness, career guidance, scholarships, and inspiration.",
+      "All listed non-profits, legal aid resources, and scholarship databases are audited against official registry records before being indexed.",
   },
 ];
 

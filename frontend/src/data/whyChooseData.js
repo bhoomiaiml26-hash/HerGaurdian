@@ -1,33 +1,33 @@
 const whyChooseData = [
   {
-    title: "Built Exclusively for Women",
+    title: "Dedicated Architecture",
     description:
-      "Every feature is thoughtfully designed to support women's health, growth, and well-being.",
+      "Engineered specifically for personal safety, physiological tracking, and legal advocacy.",
   },
   {
-    title: "AI Personalized Guidance",
+    title: "Intelligent Guidance",
     description:
-      "Receive intelligent recommendations tailored to your needs and goals.",
+      "Context-aware recommendations grounded in safety protocols and preventive health data.",
   },
   {
-    title: "Privacy & Security",
+    title: "Stringent Privacy Standards",
     description:
-      "Your personal information remains protected and confidential.",
+      "Encrypted communication and strict client-side privacy safeguards for sensitive wellness data.",
   },
   {
-    title: "Career & Scholarships",
+    title: "Grants & Opportunities",
     description:
-      "Discover career guidance, learning resources, and scholarships designed for women.",
+      "Curated repository of accredited scholarships, venture grants, and mentorship networks.",
   },
   {
-    title: "Holistic Wellness",
+    title: "Comprehensive Care",
     description:
-      "Support your physical, mental, nutritional, and menstrual wellness in one place.",
+      "Unified management of physical stamina, cycles, mental resilience, and nutritional balance.",
   },
   {
-    title: "Available Anytime",
+    title: "High-Availability SOS",
     description:
-      "Your AI companion is always ready to help whenever you need guidance.",
+      "Instant multi-channel emergency dispatch to trusted contacts and local authorities.",
   },
 ];
 

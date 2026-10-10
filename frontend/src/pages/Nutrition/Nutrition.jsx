@@ -1,11 +1,9 @@
-import { motion } from "framer-motion";
-import { Apple, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Apple } from "lucide-react";
 import toast from "react-hot-toast";
 import HealthTipModal from "../../components/common/HealthTipModal";
 import CategoryFilter from "../../components/common/CategoryFilter";
 import SearchBar from "../../components/common/SearchBar";
-import SectionTitle from "../../components/common/SectionTitle";
 import WellnessCard from "../../components/common/WellnessCard";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import recipes from "../../data/recipes";
@@ -27,7 +25,7 @@ function Nutrition() {
       const response = await getFavorites();
       setFavorites(response.favorites || []);
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to load favorites");
+      setError(err.response?.data?.message || "Unable to load saved items");
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +57,7 @@ function Nutrition() {
       if (isAlreadyFavorite) {
         const favorite = favorites.find((item) => item.itemId === tip.id.toString());
         await removeFavorite(favorite._id);
-        toast.success("Favorite Removed 💔");
+        toast.success("Removed from saved library");
       } else {
         await addFavorite({
           itemId: tip.id.toString(),
@@ -68,64 +66,71 @@ function Nutrition() {
           category: tip.category,
           source: "nutrition",
         });
-        toast.success("Favorite Added ❤️");
+        toast.success("Saved to your library");
       }
       await loadFavorites();
     } catch (err) {
-      setError(err.response?.data?.message || "Unable to update favorite");
+      setError(err.response?.data?.message || "Unable to update saved status");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(236,253,245,0.8),_transparent_40%),linear-gradient(135deg,_#f5fff7_0%,_#f4fbf3_100%)] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="mb-8 rounded-[28px] border border-green-100 bg-white/80 p-6 shadow-[0_20px_60px_rgba(22,101,52,0.08)] backdrop-blur sm:p-8">
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Header Banner */}
+        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
-                <Apple className="h-4 w-4" />
-                Nutrition essentials
+              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+                <Apple className="h-3.5 w-3.5" />
+                <span>Clinical &amp; Lifestyle Nutrition</span>
               </div>
-              <SectionTitle title="Nutrition & Healthy Eating" themeColor="text-green-700" subtitle="Discover simple nutrition tips for a healthier routine." />
-            </div>
-            <div className="rounded-2xl bg-green-50 p-3 text-green-600">
-              <Sparkles className="h-6 w-6" />
+              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
+                Nutritional Science &amp; Dietary Planning
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-[#4F4A45]">
+                Bioavailable recipes, micronutrient balance, and metabolic support adapted to feminine physiology.
+              </p>
             </div>
           </div>
-        </motion.div>
-
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <SearchBar value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search recipes & healthy meals..." inputClassName="mb-0 border-green-200 focus:ring-2 focus:ring-green-400" />
-          <p className="text-sm text-slate-500">{filteredTips.length} healthy recipes ready</p>
         </div>
 
-        {error && <p className="mb-4 rounded-2xl bg-red-50 p-3 text-sm text-red-600">{error}</p>}
+        {/* Controls */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <SearchBar
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search meal plans & nutrients..."
+          />
+          <span className="text-xs text-[#78726B] font-medium">{filteredTips.length} dietary protocols ready</span>
+        </div>
+
+        {error && <p className="rounded-lg bg-[#FDF2F2] border border-[#BA2626]/20 p-3 text-xs text-[#BA2626]">{error}</p>}
 
         <CategoryFilter
           categories={categories}
           selectedCategory={category}
           onCategoryChange={setCategory}
-          activeClassName="bg-green-600 text-white"
-          inactiveClassName="border border-green-200 bg-white text-green-700 hover:bg-green-100"
         />
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {/* Cards Grid */}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading ? (
-            <LoadingSpinner label="Loading favorites..." className="col-span-full" />
+            <LoadingSpinner label="Synchronizing records..." className="col-span-full" />
           ) : (
             filteredTips.map((tip) => (
               <WellnessCard
                 key={tip.id}
                 title={tip.title}
-                image={tip.image}
-                description={tip.description || tip.benefits?.slice(0, 2).join(" • ") || "Nutritious and balanced meal idea."}
+                description={tip.description}
                 category={tip.category}
+                image={tip.image}
                 isFavorite={favorites.some((favorite) => favorite.itemId === tip.id.toString())}
                 onToggleFavorite={() => toggleFavorite(tip)}
                 onReadMore={() => setSelectedTip(tip)}
-                themeColor="text-green-700"
-                buttonClass="border-green-200 text-green-700 hover:bg-green-50"
-                badgeClass="bg-green-100 text-green-700"
+                themeColor="text-[#1E1B18]"
+                buttonClass="border-[#EDE6E2] text-[#1E1B18] hover:bg-[#F6EFEA]"
+                badgeClass="bg-[#F6EFEA] text-[#8C3737]"
               />
             ))
           )}

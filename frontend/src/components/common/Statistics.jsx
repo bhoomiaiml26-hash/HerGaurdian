@@ -3,31 +3,36 @@ import { motion } from "framer-motion";
 
 function Statistics() {
   return (
-    <section className="py-20 bg-white px-6">
-      <h2 className="text-4xl font-bold text-center text-pink-600">
-        Our Impact
-      </h2>
+    <section id="stats" className="border-t border-[#EDE6E2] bg-white py-20 px-6 sm:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="font-serif text-3xl font-bold tracking-tight text-[#1E1B18] sm:text-4xl">
+            Our Impact
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-[#4F4A45] sm:text-lg">
+            Empowering women through AI-driven guidance, education, and wellness.
+          </p>
+        </div>
 
-      <p className="mt-4 text-center text-gray-600 max-w-3xl mx-auto">
-        Empowering women through AI-driven guidance, education, and wellness.
-      </p>
-
-      <div className="grid gap-8 mt-14 md:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto">
-        {statsData.map((item, index) => (
-          <motion.div
-            key={index}
-            whileHover={{ scale: 1.05 }}
-            className="rounded-3xl bg-pink-50 p-8 shadow-md text-center"
-          >
-            <h3 className="text-5xl font-bold text-pink-600">
-              {item.number}
-            </h3>
-
-            <p className="mt-4 text-lg text-gray-700">
-              {item.title}
-            </p>
-          </motion.div>
-        ))}
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {statsData.map((item, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35, delay: index * 0.05 }}
+              className="rounded-xl border border-[#EDE6E2] bg-[#FBF9F7] p-8 text-center"
+            >
+              <div className="font-serif text-4xl font-bold tracking-tight text-[#8C3737] sm:text-5xl">
+                {item.number}
+              </div>
+              <p className="mt-3 text-sm font-medium text-[#4F4A45]">
+                {item.title}
+              </p>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );

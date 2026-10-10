@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { MessageSquareHeart, Star, Sparkles } from "lucide-react";
+import { MessageSquare, Star } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../services/api";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
@@ -23,7 +23,7 @@ function Feedback() {
       setReviews(res.data.feedback || []);
     } catch (err) {
       console.error(err);
-      setError("Unable to load reviews.");
+      setError("Unable to load member feedback.");
     } finally {
       setLoading(false);
     }
@@ -40,59 +40,70 @@ function Feedback() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!comment.trim()) {
-      toast.error("Please enter a comment");
+      toast.error("Please enter your observation or critique.");
       return;
     }
 
     try {
       setSubmitting(true);
       await api.post("/feedback", { rating, comment });
-      toast.success("Thank you for your feedback! 🌸");
+      toast.success("Thank you. Your feedback has been recorded.");
       setComment("");
       setRating(5);
       fetchReviews();
     } catch {
-      toast.error("Failed to submit feedback");
+      toast.error("Unable to submit feedback at this time.");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(253,244,245,0.7),_transparent_40%),linear-gradient(135deg,_#fffafb_0%,_#fff1f3_100%)] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl">
-        {/* Banner */}
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Editorial Banner */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="mb-8 rounded-[28px] border border-pink-100 bg-white/80 p-6 shadow-[0_20px_60px_rgba(244,63,94,0.08)] backdrop-blur sm:p-8"
+          className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs"
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1 text-sm font-semibold text-pink-700">
-                <MessageSquareHeart className="h-4 w-4" />
-                Community Feedback
+              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span>Continuous Improvement</span>
               </div>
-              <h1 className="text-3xl font-bold text-pink-600 sm:text-4xl">Share Your Experience</h1>
-              <p className="mt-2 text-sm text-gray-600 sm:text-base">Help us grow and improve HerGuardian AI. Your review empowers others.</p>
+              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
+                Member Reviews &amp; Feedback
+              </h1>
+              <p className="mt-1 text-xs sm:text-sm text-[#4F4A45]">
+                Share your clinical or platform experience to ensure GuardianHer AI continues to meet rigorous standards of safety and care.
+              </p>
             </div>
-            <div className="rounded-2xl bg-pink-50 p-3 text-pink-600">
-              <Sparkles className="h-6 w-6" />
+            <div className="text-right">
+              <span className="text-xs font-medium text-[#78726B]">
+                {reviews.length} community {reviews.length === 1 ? "review" : "reviews"} published
+              </span>
             </div>
           </div>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.3fr]">
           {/* Submit Review Card */}
-          <div className="rounded-[28px] border border-pink-100 bg-white p-6 shadow-sm self-start">
-            <h2 className="text-xl font-bold text-pink-700">Submit a Review</h2>
-            <p className="text-sm text-gray-500 mt-1">Prefilled as: <span className="font-semibold text-gray-700">{user.name}</span></p>
+          <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs self-start">
+            <h2 className="font-serif text-lg font-bold text-[#1E1B18]">
+              Submit Feedback
+            </h2>
+            <p className="mt-1 text-xs text-[#78726B]">
+              Logged in as <span className="font-semibold text-[#1E1B18]">{user.name || "Authenticated Member"}</span>
+            </p>
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Rating</label>
-                <div className="flex gap-1">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#4F4A45] mb-2">
+                  Evaluation Rating
+                </label>
+                <div className="flex items-center gap-1.5">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
@@ -100,26 +111,34 @@ function Feedback() {
                       onClick={() => setRating(star)}
                       onMouseEnter={() => setHoverRating(star)}
                       onMouseLeave={() => setHoverRating(0)}
-                      className="p-1 transition hover:scale-110"
+                      className="p-1 transition hover:scale-105"
+                      aria-label={`Rate ${star} out of 5 stars`}
                     >
                       <Star
-                        className={`h-7 w-7 ${
-                          (hoverRating || rating) >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                        className={`h-6 w-6 transition ${
+                          (hoverRating || rating) >= star
+                            ? "fill-[#A85C12] text-[#A85C12]"
+                            : "text-[#EDE6E2]"
                         }`}
                       />
                     </button>
                   ))}
+                  <span className="ml-2 text-xs font-semibold text-[#4F4A45]">
+                    {hoverRating || rating} / 5
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Your Review</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#4F4A45] mb-1.5">
+                  Your Observations
+                </label>
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Tell us what you like, or what we can improve..."
+                  placeholder="Detail your experience with emergency routing, wellness recommendations, or interface responsiveness..."
                   rows="5"
-                  className="w-full rounded-2xl border border-pink-100 p-4 text-sm outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400"
+                  className="w-full rounded-lg border border-[#EDE6E2] bg-white p-3 text-xs text-[#1E1B18] placeholder-[#78726B] transition focus:border-[#8C3737] focus:outline-none"
                   disabled={submitting}
                   required
                 />
@@ -128,47 +147,70 @@ function Feedback() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-full bg-pink-600 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-pink-700 disabled:bg-gray-400"
+                className="w-full rounded-lg bg-[#8C3737] py-2.5 text-xs font-semibold text-white shadow-xs transition hover:bg-[#752B2B] disabled:opacity-60"
               >
-                {submitting ? "Submitting..." : "Submit Feedback"}
+                {submitting ? "Submitting Review..." : "Publish Member Review"}
               </button>
             </form>
           </div>
 
           {/* Testimonial Feed */}
-          <div className="rounded-[28px] border border-pink-100 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-pink-700">What Our Members Say</h2>
+          <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
+            <h2 className="font-serif text-lg font-bold text-[#1E1B18]">
+              Member Perspectives
+            </h2>
+            <p className="mt-1 text-xs text-[#78726B]">
+              Verified testimonials and insights from our community.
+            </p>
 
             {loading ? (
-              <LoadingSpinner label="Fetching community feedback..." className="min-h-[300px]" />
+              <LoadingSpinner label="Retrieving community feedback..." className="min-h-[250px]" />
             ) : error ? (
-              <p className="mt-6 text-sm text-red-500">{error}</p>
+              <p className="mt-6 rounded-lg border border-[#BA2626]/20 bg-[#FDF2F2] p-3 text-xs text-[#BA2626]">
+                {error}
+              </p>
             ) : reviews.length === 0 ? (
-              <div className="mt-8 text-center text-gray-500 min-h-[300px] flex flex-col items-center justify-center">
-                <MessageSquareHeart className="h-10 w-10 text-pink-300 mb-2" />
-                <p>No reviews yet. Be the first to share your thoughts!</p>
+              <div className="mt-8 flex min-h-[250px] flex-col items-center justify-center text-center text-[#78726B]">
+                <MessageSquare className="h-8 w-8 text-[#EDE6E2] mb-2" />
+                <p className="text-xs">No feedback entries recorded yet.</p>
+                <p className="mt-1 text-[11px] text-[#78726B]">Be the first to submit a review.</p>
               </div>
             ) : (
-              <div className="mt-6 space-y-4 max-h-[500px] overflow-y-auto pr-2">
+              <div className="mt-5 space-y-3.5 max-h-[520px] overflow-y-auto pr-1">
                 {reviews.map((rev) => (
-                  <div key={rev._id} className="rounded-2xl border border-pink-50 bg-pink-50/10 p-4 shadow-sm">
-                    <div className="flex justify-between items-start gap-2">
+                  <div
+                    key={rev._id}
+                    className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-4 transition hover:border-[#8C3737]/30"
+                  >
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h4 className="font-semibold text-gray-800 text-sm">{rev.userName}</h4>
-                        <p className="text-[10px] text-gray-400">{new Date(rev.createdAt).toLocaleDateString()}</p>
+                        <h3 className="font-serif text-sm font-bold text-[#1E1B18]">
+                          {rev.userName || "Verified User"}
+                        </h3>
+                        <p className="text-[10px] text-[#78726B]">
+                          {new Date(rev.createdAt).toLocaleDateString(undefined, {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </p>
                       </div>
-                      <div className="flex">
+                      <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`h-4.5 w-4.5 ${
-                              rev.rating >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-200"
+                            className={`h-3.5 w-3.5 ${
+                              rev.rating >= star
+                                ? "fill-[#A85C12] text-[#A85C12]"
+                                : "text-[#EDE6E2]"
                             }`}
                           />
                         ))}
                       </div>
                     </div>
-                    <p className="text-xs text-gray-600 mt-2 leading-relaxed">"{rev.comment}"</p>
+                    <p className="mt-2 text-xs leading-relaxed text-[#4F4A45]">
+                      "{rev.comment}"
+                    </p>
                   </div>
                 ))}
               </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, BookOpen } from 'lucide-react';
+import { Heart, BookOpen, X } from 'lucide-react';
 
 const WomenCard = ({ woman, onFavorite, isFavorited }) => {
   const [showModal, setShowModal] = useState(false);
@@ -8,109 +8,99 @@ const WomenCard = ({ woman, onFavorite, isFavorited }) => {
   return (
     <>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-gradient-to-br from-white to-blue-50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 backdrop-blur-md bg-opacity-90 border border-lavender-200"
+        viewport={{ once: true }}
+        transition={{ duration: 0.35 }}
+        className="flex flex-col justify-between rounded-xl border border-[#EDE6E2] bg-white shadow-xs overflow-hidden transition-colors hover:border-[#8C3737]/30"
       >
-        {/* Image */}
-        <div className="h-48 flex items-center justify-center relative overflow-hidden">
+        {/* Header Visual */}
+        <div className="h-44 overflow-hidden relative border-b border-[#EDE6E2] bg-[#FBF9F7] flex items-center justify-center">
           {woman.image ? (
             <img src={woman.image} alt={woman.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="h-48 bg-gradient-to-br from-blue-300 to-pink-300 flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-              <div className="text-center relative z-10">
-                <div className="text-5xl font-bold text-white opacity-70">
-                  {woman.name.charAt(0)}
-                </div>
-              </div>
+            <div className="flex h-full w-full items-center justify-center bg-[#F6EFEA] text-[#8C3737]">
+              <span className="font-serif text-4xl font-bold">{woman.name.charAt(0)}</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
         </div>
 
-        {/* Card Content */}
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h3 className="text-xl font-bold text-gray-800">{woman.name}</h3>
-              <p className="text-sm text-blue-600 font-semibold">{woman.profession}</p>
+        {/* Content */}
+        <div className="p-5 flex-1 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start gap-2 mb-2">
+              <div>
+                <h3 className="font-serif text-base font-semibold text-[#1E1B18]">{woman.name}</h3>
+                <p className="text-xs font-semibold text-[#8C3737]">{woman.profession}</p>
+              </div>
+              <button
+                onClick={() => onFavorite(woman.id)}
+                className="rounded-lg border border-[#EDE6E2] p-1.5 text-[#78726B] hover:bg-[#F6EFEA] transition-colors"
+                title={isFavorited ? "Remove from saved" : "Save profile"}
+              >
+                <Heart
+                  size={16}
+                  className={isFavorited ? "fill-[#8C3737] text-[#8C3737]" : "currentColor"}
+                />
+              </button>
             </div>
-            <button
-              onClick={() => onFavorite(woman.id)}
-              className="transition-transform hover:scale-110"
-            >
-              <Heart
-                size={24}
-                className={isFavorited ? "fill-pink-500 text-pink-500" : "text-gray-400"}
-              />
-            </button>
-          </div>
 
-          <p className="text-gray-600 text-sm line-clamp-3 mb-4">{woman.description}</p>
+            <p className="text-xs leading-relaxed text-[#4F4A45] line-clamp-3 mb-4">{woman.description}</p>
+          </div>
 
           <button
             onClick={() => setShowModal(true)}
-            className="w-full bg-gradient-to-r from-blue-500 to-pink-500 text-white py-2 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full rounded-lg border border-[#EDE6E2] bg-white py-2 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA] transition-colors flex items-center justify-center gap-1.5"
           >
-            <BookOpen size={18} />
-            Read More
+            <BookOpen size={14} className="text-[#8C3737]" />
+            Read Biography
           </button>
         </div>
       </motion.div>
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[#1E1B18]/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xl relative"
           >
-            <div className="p-8">
-              {/* Close Button */}
-              <button
-                onClick={() => setShowModal(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 rounded-lg p-1.5 text-[#78726B] hover:bg-[#F6EFEA] hover:text-[#1E1B18]"
+            >
+              <X size={18} />
+            </button>
 
-              {/* Header */}
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">{woman.name}</h2>
-              <p className="text-lg text-blue-600 font-semibold mb-6">{woman.profession}</p>
+            <h2 className="font-serif text-2xl font-bold text-[#1E1B18]">{woman.name}</h2>
+            <p className="text-xs font-semibold text-[#8C3737] mt-0.5 mb-6">{woman.profession}</p>
 
-              {/* Full Story */}
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-700 mb-3">Her Story</h3>
-                <p className="text-gray-600 leading-relaxed">{woman.fullStory}</p>
+            <div className="space-y-6 text-xs sm:text-sm leading-relaxed text-[#4F4A45]">
+              <div>
+                <h3 className="font-serif text-sm font-semibold text-[#1E1B18] mb-2">Historical Narrative</h3>
+                <p>{woman.fullStory}</p>
               </div>
 
-              {/* Achievements */}
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-700 mb-3">Key Achievements</h3>
-                <ul className="space-y-2">
+              <div>
+                <h3 className="font-serif text-sm font-semibold text-[#1E1B18] mb-2">Key Contributions &amp; Honors</h3>
+                <ul className="space-y-1.5 list-disc pl-5">
                   {woman.achievements.map((achievement, idx) => (
-                    <li key={idx} className="flex items-start gap-3">
-                      <span className="text-pink-500 text-lg mt-1">•</span>
-                      <span className="text-gray-600">{achievement}</span>
-                    </li>
+                    <li key={idx}>{achievement}</li>
                   ))}
                 </ul>
               </div>
 
-              {/* Legacy */}
-              <div className="bg-gradient-to-r from-lavender-100 to-pink-100 p-4 rounded-xl mb-6">
-                <h3 className="font-bold text-gray-700 mb-2">Her Legacy</h3>
-                <p className="text-gray-600">{woman.legacy}</p>
+              <div className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-4">
+                <h3 className="font-serif text-xs font-semibold uppercase tracking-wider text-[#78726B] mb-1">Lasting Influence</h3>
+                <p className="italic text-[#1E1B18]">{woman.legacy}</p>
               </div>
+            </div>
 
-              {/* Close Button */}
+            <div className="mt-6 pt-4 border-t border-[#EDE6E2] flex justify-end">
               <button
                 onClick={() => setShowModal(false)}
-                className="w-full bg-gradient-to-r from-blue-500 to-pink-500 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
+                className="rounded-lg bg-[#8C3737] px-5 py-2 text-xs font-semibold text-white hover:bg-[#752B2B]"
               >
                 Close
               </button>
