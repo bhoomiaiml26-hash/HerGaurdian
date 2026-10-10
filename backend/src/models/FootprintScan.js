@@ -26,6 +26,7 @@ const footprintScanSchema = new mongoose.Schema(
         severity: { type: String, enum: ['low', 'medium', 'high', 'critical'], default: 'low' },
         title: { type: String, trim: true },
         evidence: { type: String, trim: true, maxlength: 500 },
+        reasoning: { type: String, trim: true, maxlength: 1000 },
         recommendation: { type: String, trim: true, maxlength: 1000 },
         status: {
           type: String,
@@ -36,8 +37,30 @@ const footprintScanSchema = new mongoose.Schema(
     ],
     overallRiskLevel: {
       type: String,
-      enum: ['low', 'medium', 'high', 'critical'],
+      enum: ['low', 'medium', 'high', 'critical', 'inconclusive'],
       default: 'low',
+    },
+    isInconclusive: {
+      type: Boolean,
+      default: false,
+    },
+    riskScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    reasoning: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 1000,
+    },
+    limitations: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500,
     },
     findingCount: { type: Number, default: 0 },
     resolvedCount: { type: Number, default: 0 },

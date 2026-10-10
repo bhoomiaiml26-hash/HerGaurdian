@@ -13,9 +13,7 @@ import chatRoutes from './routes/chatRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
 import inspirationRoutes from './routes/inspirationRoutes.js';
-import safetyRoutes from './routes/safetyRoutes.js';
 import safetyAnalyzerRoutes from './routes/safetyAnalyzerRoutes.js';
-import geocodeRoutes from './routes/geocodeRoutes.js';
 import financeRoutes from './routes/financeRoutes.js';
 import careerEnhancedRoutes from './routes/careerRoutes.js';
 import footprintRoutes from './routes/footprintRoutes.js';
@@ -23,6 +21,7 @@ import communityRoutes from './routes/communityRoutes.js';
 import supportCaseRoutes from './routes/supportCaseRoutes.js';
 import documentDraftRoutes from './routes/documentDraftRoutes.js';
 import wellnessRoutes from './routes/wellnessRoutes.js';
+import opportunitiesRoutes from './routes/opportunitiesRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -52,7 +51,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
+app.use(morgan('dev', { skip: (req) => req.path.startsWith('/api/opportunities') }));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -71,11 +70,10 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/inspiration', inspirationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/feedback', feedbackRoutes);
-app.use('/api/safety', safetyRoutes);
 app.use('/api/safety-analyzer', safetyAnalyzerRoutes);
-app.use('/api/geocode', geocodeRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/career', careerEnhancedRoutes);
+app.use('/api/opportunities', opportunitiesRoutes);
 app.use('/api/footprint', footprintRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/support-cases', supportCaseRoutes);

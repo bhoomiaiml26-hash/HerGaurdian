@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Stripe",
+    "provider": "greenhouse",
+    "boardToken": "stripe",
+    "hqCities": []
+  },
+  {
+    "name": "Cloudflare",
+    "provider": "greenhouse",
+    "boardToken": "cloudflare",
+    "hqCities": []
+  }
+]

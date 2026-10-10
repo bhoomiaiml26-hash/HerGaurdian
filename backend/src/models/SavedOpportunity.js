@@ -13,7 +13,7 @@ const savedOpportunitySchema = new mongoose.Schema(
     organization: { type: String, trim: true, default: '' },
     type: {
       type: String,
-      enum: ['scholarship', 'grant', 'fellowship', 'internship', 'course', 'program', 'other'],
+      enum: ['job', 'scholarship', 'grant', 'fellowship', 'internship', 'course', 'program', 'other'],
       default: 'other',
     },
     deadline: { type: Date, default: null },

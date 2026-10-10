@@ -2,6 +2,8 @@ import express from 'express';
 import protect from '../middleware/auth.js';
 import Transaction from '../models/Transaction.js';
 import SavingsGoal from '../models/SavingsGoal.js';
+import MonthlyBudget from '../models/MonthlyBudget.js';
+import { computeFinancialAnalytics, getPreviousMonth } from '../services/financialAnalyticsService.js';
 
 const router = express.Router();
 
@@ -162,6 +164,117 @@ router.get('/summary', protect, async (req, res, next) => {
         transactionCount: transactions.length,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── BUDGET CONFIGURATION & ANALYTICS ─────────────────────────────────────────
+
+/**
+ * GET /api/finance/budget-settings
+ * Fetch monthly budget configuration for the user and month.
+ */
+router.get('/budget-settings', protect, async (req, res, next) => {
+  try {
+    const { month } = req.query;
+    const now = new Date();
+    const targetMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    let budget = await MonthlyBudget.findOne({ user: req.user._id, month: targetMonth }).lean();
+
+    if (!budget) {
+      // Look for latest configured month to use as defaults
+      const latest = await MonthlyBudget.findOne({ user: req.user._id }).sort({ month: -1 }).lean();
+      budget = {
+        month: targetMonth,
+        monthlyIncome: latest ? latest.monthlyIncome : 0,
+        monthlyBudget: latest ? latest.monthlyBudget : 0,
+        savingsGoal: latest ? latest.savingsGoal : 0,
+        categoryBudgets: latest ? latest.categoryBudgets : [],
+        isDefaultInherited: Boolean(latest),
+      };
+    }
+
+    res.json({ success: true, budget });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/finance/budget-settings
+ * Upsert monthly budget configuration for the specified month.
+ */
+router.post('/budget-settings', protect, async (req, res, next) => {
+  try {
+    const { month, monthlyIncome, monthlyBudget, savingsGoal, categoryBudgets } = req.body;
+
+    const now = new Date();
+    const targetMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const parsedIncome = Math.max(0, parseFloat(monthlyIncome) || 0);
+    const parsedBudget = Math.max(0, parseFloat(monthlyBudget) || 0);
+    const parsedGoal = Math.max(0, parseFloat(savingsGoal) || 0);
+
+    const cleanCatBudgets = Array.isArray(categoryBudgets)
+      ? categoryBudgets
+          .filter((c) => c && c.category && typeof c.category === 'string')
+          .map((c) => ({
+            category: c.category.trim(),
+            limit: Math.max(0, parseFloat(c.limit) || 0),
+          }))
+      : [];
+
+    const updated = await MonthlyBudget.findOneAndUpdate(
+      { user: req.user._id, month: targetMonth },
+      {
+        user: req.user._id,
+        month: targetMonth,
+        monthlyIncome: parsedIncome,
+        monthlyBudget: parsedBudget,
+        savingsGoal: parsedGoal,
+        categoryBudgets: cleanCatBudgets,
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.json({ success: true, budget: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/finance/analytics
+ * Comprehensive, verified financial analytics and insights engine.
+ */
+router.get('/analytics', protect, async (req, res, next) => {
+  try {
+    const { month } = req.query;
+    const now = new Date();
+    const targetMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const prevMonth = getPreviousMonth(targetMonth);
+
+    const [currentTxs, prevTxs, budgetDoc] = await Promise.all([
+      Transaction.find({ user: req.user._id, month: targetMonth }).sort({ date: -1 }).lean(),
+      prevMonth ? Transaction.find({ user: req.user._id, month: prevMonth }).lean() : Promise.resolve([]),
+      MonthlyBudget.findOne({ user: req.user._id, month: targetMonth }).lean(),
+    ]);
+
+    let activeBudget = budgetDoc;
+    if (!activeBudget) {
+      activeBudget = await MonthlyBudget.findOne({ user: req.user._id }).sort({ month: -1 }).lean();
+    }
+
+    const analytics = computeFinancialAnalytics({
+      currentMonthTransactions: currentTxs,
+      previousMonthTransactions: prevTxs,
+      budgetConfig: activeBudget,
+      month: targetMonth,
+    });
+
+    res.json({ success: true, analytics });
   } catch (err) {
     next(err);
   }

@@ -2,8 +2,35 @@ import express from 'express';
 import protect from '../middleware/auth.js';
 import CareerRoadmap from '../models/CareerRoadmap.js';
 import SavedOpportunity from '../models/SavedOpportunity.js';
+import { analyzeSkillGap } from '../services/skillGapAnalyzer.js';
+import { getOpportunityFeed } from '../services/opportunityFeed.js';
 
 const router = express.Router();
+
+// ── SKILL GAP ANALYZER ───────────────────────────────────────────────────────
+
+/**
+ * POST /api/career/skill-gap
+ * Analyze skill gaps for any career role, specialization, or emerging discipline.
+ * Protected route, user-scoped.
+ */
+router.post('/skill-gap', protect, async (req, res, next) => {
+  try {
+    const { targetRole, currentSkills, educationLevel, experienceLevel, careerGoal } = req.body;
+
+    const analysis = await analyzeSkillGap({
+      targetRole,
+      currentSkills,
+      educationLevel,
+      experienceLevel,
+      careerGoal,
+    });
+
+    res.json({ success: true, analysis });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message || 'Skill gap analysis failed' });
+  }
+});
 
 // ── CAREER ROADMAPS ──────────────────────────────────────────────────────────
 
@@ -113,6 +140,18 @@ router.delete('/roadmaps/:id', protect, async (req, res, next) => {
 });
 
 // ── SAVED OPPORTUNITIES ──────────────────────────────────────────────────────
+
+router.get('/opportunities/feed', protect, async (req, res, next) => {
+  try {
+    const feed = await getOpportunityFeed({ refresh: req.query.refresh === 'true' });
+    res.json({ success: true, ...feed });
+  } catch (err) {
+    res.status(502).json({
+      success: false,
+      message: 'Live job listings are temporarily unavailable. Please try refreshing later.',
+    });
+  }
+});
 
 /**
  * GET /api/career/opportunities
