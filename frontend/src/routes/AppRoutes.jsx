@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import SkeletonCard from "../components/common/SkeletonCard";
@@ -14,22 +14,24 @@ const ResetPassword = lazy(() => import("../pages/Authentication/ResetPassword")
 // AI Assistant removed
 const Dashboard = lazy(() => import("../pages/Home/Dashboard"));
 const EmergencySOS = lazy(() => import("../pages/EmergencySOS/EmergencySOS"));
-const Fitness = lazy(() => import("../pages/Fitness/Fitness"));
+const SafeRoute = lazy(() => import("../pages/SafeRoute/SafeRoute"));
+const DigitalSafetyAnalyzer = lazy(() => import("../pages/DigitalSafetyAnalyzer/DigitalSafetyAnalyzer"));
+const WellnessHub = lazy(() => import("../pages/WellnessHub/WellnessHub"));
 const HealthReminder = lazy(() => import("../pages/HealthReminder/HealthReminder"));
-const MenstrualWellness = lazy(() => import("../pages/Menstrual Wellness/MenstrualWellness"));
-const Nutrition = lazy(() => import("../pages/Nutrition/Nutrition"));
 const Profile = lazy(() => import("../pages/Profile/Profile"));
 const Saved = lazy(() => import("../pages/Saved/Saved"));
-const WomenHealth = lazy(() => import("../pages/WomenHealth/WomenHealth"));
-const MentalWellness = lazy(() => import("../pages/Mental Wellness/MentalWellness"));
 const Career = lazy(() => import("../pages/Career/Career"));
-const Inspiration = lazy(() => import("../pages/Inspiration/Inspiration"));
 const Analytics = lazy(() => import("../pages/Analytics/Analytics"));
-// Symptom Checker removed
-const Notifications = lazy(() => import("../pages/Notifications/Notifications"));
+// Notifications removed
 const Feedback = lazy(() => import("../pages/Feedback/Feedback"));
 // Period Tracker and Wellness Insights removed
 const CommunityHub = lazy(() => import("../pages/Community/CommunityHub"));
+const FinancialCoach = lazy(() => import("../pages/FinancialCoach/FinancialCoach"));
+const FootprintScanner = lazy(() => import("../pages/FootprintScanner/FootprintScanner"));
+
+// Old static Wellness Hub tab pages removed from the bundle:
+// WomenHealth, MenstrualWellness, Fitness, MentalWellness, Nutrition.
+// Their videos and useful guidance live on inside the studio sections.
 
 function AppRoutesContent() {
   const location = useLocation();
@@ -48,22 +50,29 @@ function AppRoutesContent() {
         <Route element={<RequireAuth><DashboardLayout /></RequireAuth>}>
           <Route path="/dashboard" element={<Suspense fallback={<RouteFallback />}><Dashboard /></Suspense>} />
           <Route path="/emergency" element={<Suspense fallback={<RouteFallback />}><EmergencySOS /></Suspense>} />
-          <Route path="/fitness" element={<Suspense fallback={<RouteFallback />}><Fitness /></Suspense>} />
+          <Route path="/safe-route" element={<Suspense fallback={<RouteFallback />}><SafeRoute /></Suspense>} />
+          <Route path="/safety-analyzer" element={<Suspense fallback={<RouteFallback />}><DigitalSafetyAnalyzer /></Suspense>} />
+          <Route path="/wellness" element={<Suspense fallback={<RouteFallback />}><WellnessHub /></Suspense>} />
           <Route path="/reminder" element={<Suspense fallback={<RouteFallback />}><HealthReminder /></Suspense>} />
-          <Route path="/menstrual" element={<Suspense fallback={<RouteFallback />}><MenstrualWellness /></Suspense>} />
-          <Route path="/nutrition" element={<Suspense fallback={<RouteFallback />}><Nutrition /></Suspense>} />
           <Route path="/profile" element={<Suspense fallback={<RouteFallback />}><Profile /></Suspense>} />
           <Route path="/saved" element={<Suspense fallback={<RouteFallback />}><Saved /></Suspense>} />
-          <Route path="/health" element={<Suspense fallback={<RouteFallback />}><WomenHealth /></Suspense>} />
-          <Route path="/mental" element={<Suspense fallback={<RouteFallback />}><MentalWellness /></Suspense>} />
           <Route path="/career" element={<Suspense fallback={<RouteFallback />}><Career /></Suspense>} />
-          <Route path="/inspiration" element={<Suspense fallback={<RouteFallback />}><Inspiration /></Suspense>} />
+          <Route path="/inspiration" element={<Navigate to="/community" replace />} />
           <Route path="/analytics" element={<Suspense fallback={<RouteFallback />}><Analytics /></Suspense>} />
-          <Route path="/notifications" element={<Suspense fallback={<RouteFallback />}><Notifications /></Suspense>} />
+          <Route path="/notifications" element={<Navigate to="/dashboard" replace />} />
           {/* Removed assistant, symptom-checker, period-tracker, and wellness-insights routes */}
           <Route path="/community" element={<Suspense fallback={<RouteFallback />}><CommunityHub /></Suspense>} />
           <Route path="/feedback" element={<Suspense fallback={<RouteFallback />}><Feedback /></Suspense>} />
+          <Route path="/financial-coach" element={<Suspense fallback={<RouteFallback />}><FinancialCoach /></Suspense>} />
+          <Route path="/footprint-scanner" element={<Suspense fallback={<RouteFallback />}><FootprintScanner /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<RouteFallback />}><Profile /></Suspense>} />
+
+          {/* Redirects from old wellness routes to the new Wellness Studio */}
+          <Route path="/health" element={<Navigate to="/wellness?section=today" replace />} />
+          <Route path="/menstrual" element={<Navigate to="/wellness?section=cycle" replace />} />
+          <Route path="/nutrition" element={<Navigate to="/wellness?section=nutrition-ai" replace />} />
+          <Route path="/fitness" element={<Navigate to="/wellness?section=movement" replace />} />
+          <Route path="/mental" element={<Navigate to="/wellness?section=reset" replace />} />
         </Route>
       </Routes>
     </AnimatePresence>

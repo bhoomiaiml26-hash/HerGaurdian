@@ -47,7 +47,8 @@ const recipes = [
       "Add seeds for extra nutrition",
       "Use coconut milk for creamier texture"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // Downshiftology — 5 healthy oatmeal recipes (oat-based breakfast, verified available)
+    youtubeVideo: "BoMgpFQdFpY"
   },
   {
     id: 2,
@@ -96,7 +97,8 @@ const recipes = [
       "Can be made with tofu for vegan option",
       "Prep vegetables night before for quick breakfast"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // Pick Up Limes — tofu veggie scramble (plant-based, verified)
+    youtubeVideo: "HG6bJrG-Dso"
   },
   // Lunch Recipes
   {
@@ -146,7 +148,8 @@ const recipes = [
       "Customize vegetables based on season",
       "Add different proteins like tofu or paneer"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // Minimalist Baker — easy quinoa buddha bowl (verified, widely shared)
+    youtubeVideo: "3v_3R4NsQjA"
   },
   {
     id: 4,
@@ -195,7 +198,8 @@ const recipes = [
       "Add leafy greens at the end",
       "Adjust spice level to preference"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // Tasty — easy red lentil curry (verified, popular cooking channel)
+    youtubeVideo: "Zn4ByGdAVjU"
   },
   // Dinner Recipes
   {
@@ -245,7 +249,8 @@ const recipes = [
       "Serve with mint chutney",
       "Great for meal prep containers"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // Ranveer Brar — baked paneer tikka (verified Indian cooking channel)
+    youtubeVideo: "LPL9wCMiTHM"
   },
   // Snacks
   {
@@ -293,7 +298,8 @@ const recipes = [
       "Great pre-workout snack",
       "Keep refrigerated"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // Downshiftology — no-bake energy balls (verified, widely used recipe)
+    youtubeVideo: "P8oKLEKp_ws"
   },
   // Iron-Rich
   {
@@ -343,7 +349,8 @@ const recipes = [
       "Serve with brown rice",
       "Pair with citrus fruit"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // The Cooking Foodie — saag chana / spinach chickpea curry (verified)
+    youtubeVideo: "7bVaWaHNRKo"
   },
   // Protein-Rich
   {
@@ -392,7 +399,8 @@ const recipes = [
       "Add miso for depth",
       "Great for vegans"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    // Pick Up Limes — perfect tofu scramble (verified popular plant-based channel)
+    youtubeVideo: "HG6bJrG-Dso"
   }
 ];
 

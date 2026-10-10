@@ -23,7 +23,7 @@ function AboutSection() {
             transition={{ delay: 0.1, duration: 0.4 }}
             className="mt-6 text-base leading-relaxed text-[#4F4A45] sm:text-lg max-w-3xl mx-auto"
           >
-            HerGuardian AI is an intelligent platform created exclusively for women. Our mission is to empower every woman by providing personalized support for health, menstrual wellness, nutrition, fitness, mental well-being, career growth, scholarships, and daily inspiration.
+            HerGuardian AI is an intelligent platform created exclusively for women. Our mission is to empower every woman by providing personalized support for health, menstrual wellness, nutrition, fitness, mental well-being, career growth, scholarships, and community rights.
           </motion.p>
 
           <motion.p

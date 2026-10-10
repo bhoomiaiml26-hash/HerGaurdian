@@ -76,83 +76,63 @@ function Fitness() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* Header Banner */}
-        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
-                <Activity className="h-3.5 w-3.5" />
-                <span>Functional Movement &amp; Strength</span>
-              </div>
-              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
-                Functional Fitness &amp; Conditioning
-              </h1>
-              <p className="mt-1 text-xs sm:text-sm text-[#4F4A45]">
-                Physiologically calibrated training routines designed for bone density, core stability, and endurance.
-              </p>
+    <div className="space-y-6">
+      {/* Daily Protocol Highlight */}
+      {dailyWorkout && (
+        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Dumbbell className="h-4 w-4 text-[#8C3737]" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-[#78726B]">Suggested Session</p>
             </div>
+            <h2 className="mt-1 font-serif text-lg font-bold text-[#1E1B18]">{dailyWorkout.title}</h2>
+            <p className="mt-1 text-xs leading-relaxed text-[#4F4A45] max-w-2xl">{dailyWorkout.description}</p>
           </div>
+          <span className="self-start sm:self-auto rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
+            {dailyWorkout.category}
+          </span>
         </div>
+      )}
 
-        {/* Daily Protocol Highlight */}
-        {dailyWorkout && (
-          <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <Dumbbell className="h-4 w-4 text-[#8C3737]" />
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#78726B]">Suggested Session</p>
-              </div>
-              <h2 className="mt-1 font-serif text-lg font-bold text-[#1E1B18]">{dailyWorkout.title}</h2>
-              <p className="mt-1 text-xs leading-relaxed text-[#4F4A45] max-w-2xl">{dailyWorkout.description}</p>
-            </div>
-            <span className="self-start sm:self-auto rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
-              {dailyWorkout.category}
-            </span>
-          </div>
-        )}
-
-        {/* Controls */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <SearchBar
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search exercises by focus..."
-          />
-          <span className="text-xs text-[#78726B] font-medium">{filteredTips.length} routines available</span>
-        </div>
-
-        {error && <p className="rounded-lg bg-[#FDF2F2] border border-[#BA2626]/20 p-3 text-xs text-[#BA2626]">{error}</p>}
-
-        <CategoryFilter
-          categories={categories}
-          selectedCategory={category}
-          onCategoryChange={setCategory}
+      {/* Controls */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <SearchBar
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search exercises by focus..."
         />
+        <span className="text-xs text-[#78726B] font-medium">{filteredTips.length} routines available</span>
+      </div>
 
-        {/* Cards Grid */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {isLoading ? (
-            <LoadingSpinner label="Synchronizing records..." className="col-span-full" />
-          ) : (
-            filteredTips.map((tip) => (
-              <WellnessCard
-                key={tip.id}
-                image={tip.image}
-                title={tip.title}
-                description={tip.description}
-                category={tip.category}
-                isFavorite={favorites.some((favorite) => favorite.itemId === tip.id.toString())}
-                onToggleFavorite={() => toggleFavorite(tip)}
-                onReadMore={() => setSelectedTip(tip)}
-                themeColor="text-[#1E1B18]"
-                buttonClass="border-[#EDE6E2] text-[#1E1B18] hover:bg-[#F6EFEA]"
-                badgeClass="bg-[#F6EFEA] text-[#8C3737]"
-              />
-            ))
-          )}
-        </div>
+      {error && <p className="rounded-lg bg-[#FDF2F2] border border-[#BA2626]/20 p-3 text-xs text-[#BA2626]">{error}</p>}
+
+      <CategoryFilter
+        categories={categories}
+        selectedCategory={category}
+        onCategoryChange={setCategory}
+      />
+
+      {/* Cards Grid */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {isLoading ? (
+          <LoadingSpinner label="Synchronizing records..." className="col-span-full" />
+        ) : (
+          filteredTips.map((tip) => (
+            <WellnessCard
+              key={tip.id}
+              image={tip.image}
+              title={tip.title}
+              description={tip.description}
+              category={tip.category}
+              isFavorite={favorites.some((favorite) => favorite.itemId === tip.id.toString())}
+              onToggleFavorite={() => toggleFavorite(tip)}
+              onReadMore={() => setSelectedTip(tip)}
+              themeColor="text-[#1E1B18]"
+              buttonClass="border-[#EDE6E2] text-[#1E1B18] hover:bg-[#F6EFEA]"
+              badgeClass="bg-[#F6EFEA] text-[#8C3737]"
+            />
+          ))
+        )}
       </div>
 
       <HealthTipModal tip={selectedTip} onClose={() => setSelectedTip(null)} />

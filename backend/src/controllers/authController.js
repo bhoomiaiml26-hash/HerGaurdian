@@ -95,7 +95,8 @@ export const forgotPassword = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email is required' });
     }
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(200).json({
         success: true,
@@ -111,11 +112,25 @@ export const forgotPassword = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
-    await sendPasswordResetEmail({
-      to: user.email,
-      name: user.name || 'there',
-      resetUrl,
-    });
+    
+    try {
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name || 'there',
+        resetUrl,
+      });
+    } catch (emailError) {
+      console.error('Password reset email failed:', emailError);
+      // Rollback the reset token if email delivery failed
+      user.resetPasswordToken = null;
+      user.resetPasswordExpire = null;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(500).json({
+        success: false,
+        message: 'Could not dispatch password reset email. Please verify SMTP settings.',
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -130,6 +145,10 @@ export const resetPassword = async (req, res, next) => {
   try {
     const { token } = req.params;
     const { password, confirmPassword } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'Reset token is required' });
+    }
 
     if (!password || !confirmPassword) {
       return res.status(400).json({ success: false, message: 'Both password fields are required' });

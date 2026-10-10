@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, ExternalLink, Quote } from 'lucide-react';
+import { Heart, Quote } from 'lucide-react';
 import { inspirationQuotes } from '../../data/inspirationQuotes';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -123,16 +123,6 @@ const QuoteOfTheDayWidget = () => {
 
       <p className="font-serif text-base italic leading-relaxed text-[#1E1B18] sm:text-lg">"{quote.text}"</p>
       <p className="mt-2 text-xs font-medium text-[#78726B]">— {quote.author}</p>
-
-      <div className="mt-4 pt-3 border-t border-[#EDE6E2]">
-        <a
-          href="/inspiration"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8C3737] hover:underline"
-        >
-          Explore Reflection Library
-          <ExternalLink size={13} />
-        </a>
-      </div>
     </motion.div>
   );
 };

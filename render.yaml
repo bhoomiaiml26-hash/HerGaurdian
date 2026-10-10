@@ -8,3 +8,22 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
+
+  # NutriBot — IBM Watsonx.ai nutrition service (Flask) used by the
+  # HerGuardian frontend's Wellness Hub → Nutrition AI section.
+  # Set IBM_API_KEY, IBM_PROJECT_ID, IBM_WATSONX_URL, WATSONX_MODEL_ID,
+  # FLASK_SECRET_KEY and CORS_ORIGINS in this service's environment panel.
+  - type: web
+    name: herguardian-nutrition
+    env: python
+    root: nutrition bot
+    branch: main
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: FLASK_PORT
+        value: 5001
+      - key: FLASK_DEBUG
+        value: "False"

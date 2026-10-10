@@ -42,4 +42,5 @@ report.*
 # Local settings
 .env
 *.local
+nul
 

@@ -13,7 +13,16 @@ import chatRoutes from './routes/chatRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
 import inspirationRoutes from './routes/inspirationRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
+import safetyRoutes from './routes/safetyRoutes.js';
+import safetyAnalyzerRoutes from './routes/safetyAnalyzerRoutes.js';
+import geocodeRoutes from './routes/geocodeRoutes.js';
+import financeRoutes from './routes/financeRoutes.js';
+import careerEnhancedRoutes from './routes/careerRoutes.js';
+import footprintRoutes from './routes/footprintRoutes.js';
+import communityRoutes from './routes/communityRoutes.js';
+import supportCaseRoutes from './routes/supportCaseRoutes.js';
+import documentDraftRoutes from './routes/documentDraftRoutes.js';
+import wellnessRoutes from './routes/wellnessRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -21,8 +30,23 @@ dotenv.config();
 const app = express();
 
 app.use(helmet());
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+];
+const envOrigins = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(o => o.trim()) : [];
+const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',') : '*',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. curl, Postman, server-to-server)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
@@ -32,7 +56,7 @@ app.use(morgan('dev'));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'production' ? 100 : 5000,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -47,7 +71,16 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/inspiration', inspirationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/feedback', feedbackRoutes);
-app.use('/api/notifications', notificationRoutes);
+app.use('/api/safety', safetyRoutes);
+app.use('/api/safety-analyzer', safetyAnalyzerRoutes);
+app.use('/api/geocode', geocodeRoutes);
+app.use('/api/finance', financeRoutes);
+app.use('/api/career', careerEnhancedRoutes);
+app.use('/api/footprint', footprintRoutes);
+app.use('/api/community', communityRoutes);
+app.use('/api/support-cases', supportCaseRoutes);
+app.use('/api/drafts', documentDraftRoutes);
+app.use('/api/wellness', wellnessRoutes);
 
 app.use(errorHandler);
 

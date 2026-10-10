@@ -91,89 +91,69 @@ function MentalWellness() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* Header Banner */}
-        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
-                <Brain className="h-3.5 w-3.5" />
-                <span>Cognitive Health &amp; Resilience</span>
-              </div>
-              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl">
-                Mental Wellbeing &amp; Stress De-Escalation
-              </h1>
-              <p className="mt-1 text-xs sm:text-sm text-[#4F4A45]">
-                Evidence-based somatic exercises, nervous system down-regulation, and emotional resilience tools.
-              </p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Daily Reflection */}
+      <div className="rounded-xl border border-[#EDE6E2] bg-[#F6EFEA]/80 p-5 shadow-xs flex items-start gap-3.5">
+        <Quote className="h-5 w-5 shrink-0 text-[#8C3737] mt-0.5" />
+        <div>
+          <h3 className="font-serif text-xs font-semibold uppercase tracking-wider text-[#78726B]">Daily Mindfulness Principle</h3>
+          <p className="mt-1 font-serif text-sm italic leading-relaxed text-[#1E1B18]">"{dailyQuote}"</p>
         </div>
+      </div>
 
-        {/* Daily Reflection */}
-        <div className="rounded-xl border border-[#EDE6E2] bg-[#F6EFEA]/80 p-5 shadow-xs flex items-start gap-3.5">
-          <Quote className="h-5 w-5 shrink-0 text-[#8C3737] mt-0.5" />
-          <div>
-            <h3 className="font-serif text-xs font-semibold uppercase tracking-wider text-[#78726B]">Daily Mindfulness Principle</h3>
-            <p className="mt-1 font-serif text-sm italic leading-relaxed text-[#1E1B18]">"{dailyQuote}"</p>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <SearchBar
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search mental health protocols..."
-          />
-          <span className="text-xs text-[#78726B] font-medium">{filteredTips.length} practices available</span>
-        </div>
-
-        {error && <p className="rounded-lg bg-[#FDF2F2] border border-[#BA2626]/20 p-3 text-xs text-[#BA2626]">{error}</p>}
-
-        <CategoryFilter
-          categories={categories}
-          selectedCategory={category}
-          onCategoryChange={setCategory}
+      {/* Controls */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <SearchBar
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search mental health protocols..."
         />
+        <span className="text-xs text-[#78726B] font-medium">{filteredTips.length} practices available</span>
+      </div>
 
-        {/* Cards Grid */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {isLoading ? (
-            <LoadingSpinner label="Synchronizing records..." className="col-span-full" />
-          ) : (
-            filteredTips.map((tip) => (
-              <WellnessCard
-                key={tip.id}
-                title={tip.title}
-                description={tip.description}
-                category={tip.category}
-                isFavorite={favorites.some((favorite) => favorite.itemId === tip.id.toString())}
-                onToggleFavorite={() => toggleFavorite(tip)}
-                onReadMore={() => setSelectedTip(tip)}
-                themeColor="text-[#1E1B18]"
-                buttonClass="border-[#EDE6E2] text-[#1E1B18] hover:bg-[#F6EFEA]"
-                badgeClass="bg-[#F6EFEA] text-[#8C3737]"
-              />
-            ))
-          )}
-        </div>
+      {error && <p className="rounded-lg bg-[#FDF2F2] border border-[#BA2626]/20 p-3 text-xs text-[#BA2626]">{error}</p>}
 
-        {/* Somatic De-Escalation Protocols */}
-        <div className="mt-10 rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
-          <h2 className="font-serif text-lg font-bold text-[#1E1B18] mb-4">
-            Acute Stress De-Escalation Protocols
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {quickCopingSkills.map((skill, idx) => (
-              <div key={skill.title} className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-3.5">
-                <span className="text-[10px] font-bold text-[#8C3737]">0{idx + 1}</span>
-                <h3 className="font-serif text-xs font-semibold text-[#1E1B18] mt-1">{skill.title}</h3>
-                <p className="mt-1 text-[11px] leading-relaxed text-[#4F4A45]">{skill.description}</p>
-              </div>
-            ))}
-          </div>
+      <CategoryFilter
+        categories={categories}
+        selectedCategory={category}
+        onCategoryChange={setCategory}
+      />
+
+      {/* Cards Grid */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {isLoading ? (
+          <LoadingSpinner label="Synchronizing records..." className="col-span-full" />
+        ) : (
+          filteredTips.map((tip) => (
+            <WellnessCard
+              key={tip.id}
+              title={tip.title}
+              description={tip.description}
+              category={tip.category}
+              isFavorite={favorites.some((favorite) => favorite.itemId === tip.id.toString())}
+              onToggleFavorite={() => toggleFavorite(tip)}
+              onReadMore={() => setSelectedTip(tip)}
+              themeColor="text-[#1E1B18]"
+              buttonClass="border-[#EDE6E2] text-[#1E1B18] hover:bg-[#F6EFEA]"
+              badgeClass="bg-[#F6EFEA] text-[#8C3737]"
+            />
+          ))
+        )}
+      </div>
+
+      {/* Somatic De-Escalation Protocols */}
+      <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
+        <h2 className="font-serif text-lg font-bold text-[#1E1B18] mb-4">
+          Acute Stress De-Escalation Protocols
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {quickCopingSkills.map((skill, idx) => (
+            <div key={skill.title} className="rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-3.5">
+              <span className="text-[10px] font-bold text-[#8C3737]">0{idx + 1}</span>
+              <h3 className="font-serif text-xs font-semibold text-[#1E1B18] mt-1">{skill.title}</h3>
+              <p className="mt-1 text-[11px] leading-relaxed text-[#4F4A45]">{skill.description}</p>
+            </div>
+          ))}
         </div>
       </div>
 

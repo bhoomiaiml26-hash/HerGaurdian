@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 function Statistics() {
   return (
-    <section id="stats" className="border-t border-[#EDE6E2] bg-white py-20 px-6 sm:px-8">
+    <section id="impact" className="border-t border-[#EDE6E2] bg-white py-20 px-6 sm:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="font-serif text-3xl font-bold tracking-tight text-[#1E1B18] sm:text-4xl">

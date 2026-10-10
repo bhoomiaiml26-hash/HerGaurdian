@@ -7,12 +7,12 @@ import {
   Activity,
   Brain,
   GraduationCap,
-  BookOpen,
   ShieldAlert,
   Bell,
   Bookmark,
   MessageSquareHeart,
-  ArrowRight
+  ArrowRight,
+  Users
 } from "lucide-react";
 
 const cards = [
@@ -60,10 +60,10 @@ const cards = [
     route: "/career",
   },
   {
-    title: "Safety & Legal Library",
-    description: "Advocacy resources, legal guides, and leadership reads.",
-    icon: BookOpen,
-    route: "/inspiration",
+    title: "Community & Rights",
+    description: "Rights assistant, complaint builder, verified support, and mutual help.",
+    icon: Users,
+    route: "/community",
   },
   {
     title: "Health Reminders",

@@ -42,11 +42,11 @@ const dashboardCards = [
     route: "/career",
   },
   {
-    title: "Inspiration Hub",
-    description: "Curated literature, case studies, and editorial essays.",
-    icon: "BookOpen",
+    title: "Community & Rights",
+    description: "Rights assistant, complaint builder, verified support, and mutual help.",
+    icon: "Users",
     color: "bg-[#F6EFEA]",
-    route: "/inspiration",
+    route: "/community",
   },
   {
     title: "Emergency SOS",

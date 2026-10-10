@@ -44,6 +44,56 @@ const safetyProtocols = [
   "Verify battery reserves and maintain access to portable power sources.",
 ];
 
+const RELATIONSHIP_OPTIONS = [
+  { value: "family", label: "Family" },
+  { value: "spouse", label: "Spouse / Partner" },
+  { value: "parent", label: "Parent" },
+  { value: "sibling", label: "Sibling" },
+  { value: "friend", label: "Trusted Friend" },
+  { value: "colleague", label: "Colleague" },
+  { value: "other", label: "Other" },
+];
+
+const RELATIONSHIP_DISPLAY_MAP = {
+  family: "Family",
+  spouse: "Spouse / Partner",
+  parent: "Parent",
+  sibling: "Sibling",
+  friend: "Trusted Friend",
+  colleague: "Colleague",
+  other: "Other",
+  // Legacy & granular aliases
+  mother: "Parent",
+  father: "Parent",
+  sister: "Sibling",
+  brother: "Sibling",
+};
+
+const normalizeRelationship = (val) => {
+  if (!val || typeof val !== "string") return "family";
+  const clean = val.trim().toLowerCase();
+  if (clean === "family") return "family";
+  if (
+    clean === "spouse" ||
+    clean === "partner" ||
+    clean === "spouse / partner" ||
+    clean === "spouse/partner"
+  )
+    return "spouse";
+  if (clean === "parent" || clean === "mother" || clean === "father") return "parent";
+  if (clean === "sibling" || clean === "sister" || clean === "brother") return "sibling";
+  if (clean === "friend" || clean === "trusted friend") return "friend";
+  if (clean === "colleague") return "colleague";
+  if (clean === "other") return "other";
+  return "family";
+};
+
+const getRelationshipDisplay = (val) => {
+  if (!val) return "Other";
+  const clean = String(val).trim().toLowerCase();
+  return RELATIONSHIP_DISPLAY_MAP[clean] || val;
+};
+
 function EmergencySOS() {
   const [contacts, setContacts] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,7 +105,7 @@ function EmergencySOS() {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    relationship: "Family",
+    relationship: "family",
   });
 
   const contactCountLabel = useMemo(() => {
@@ -91,7 +141,7 @@ function EmergencySOS() {
       setFormData({
         name: contact.name,
         phone: contact.phone,
-        relationship: contact.relationship || "Family",
+        relationship: normalizeRelationship(contact.relationship),
       });
     } else {
       setIsEditing(false);
@@ -99,7 +149,7 @@ function EmergencySOS() {
       setFormData({
         name: "",
         phone: "",
-        relationship: "Family",
+        relationship: "family",
       });
     }
     setIsModalOpen(true);
@@ -112,14 +162,18 @@ function EmergencySOS() {
     setFormData({
       name: "",
       phone: "",
-      relationship: "Family",
+      relationship: "family",
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.phone) {
+    const cleanName = formData.name.trim();
+    const cleanPhone = formData.phone.trim();
+    const cleanRelationship = normalizeRelationship(formData.relationship);
+
+    if (!cleanName || !cleanPhone) {
       toast.error("Contact name and valid phone number are required.");
       return;
     }
@@ -129,16 +183,16 @@ function EmergencySOS() {
 
       if (isEditing) {
         await updateContact(editingContactId, {
-          name: formData.name,
-          phone: formData.phone,
-          relationship: formData.relationship,
+          name: cleanName,
+          phone: cleanPhone,
+          relationship: cleanRelationship,
         });
         toast.success("Emergency contact updated");
       } else {
         await addContact({
-          name: formData.name,
-          phone: formData.phone,
-          relationship: formData.relationship,
+          name: cleanName,
+          phone: cleanPhone,
+          relationship: cleanRelationship,
         });
         toast.success("Emergency contact added");
       }
@@ -294,7 +348,7 @@ function EmergencySOS() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="inline-block rounded bg-[#F6EFEA] px-2 py-0.5 text-[10px] font-semibold text-[#8C3737]">
-                        {contact.relationship}
+                        {getRelationshipDisplay(contact.relationship)}
                       </span>
                       <h4 className="mt-2 font-serif text-sm font-semibold text-[#1E1B18]">
                         {contact.name}
@@ -423,13 +477,11 @@ function EmergencySOS() {
                   className="w-full rounded-lg border border-[#EDE6E2] bg-white px-3.5 py-2.5 text-sm text-[#1E1B18] focus:border-[#8C3737] focus:outline-none"
                   disabled={submitting}
                 >
-                  <option value="Family">Family</option>
-                  <option value="Spouse">Spouse / Partner</option>
-                  <option value="Parent">Parent</option>
-                  <option value="Sibling">Sibling</option>
-                  <option value="Friend">Trusted Friend</option>
-                  <option value="Colleague">Colleague</option>
-                  <option value="Other">Other</option>
+                  {RELATIONSHIP_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

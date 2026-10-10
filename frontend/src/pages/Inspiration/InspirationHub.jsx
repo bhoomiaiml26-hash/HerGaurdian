@@ -1,3 +1,7 @@
-import Inspiration from "./Inspiration";
+import { Navigate } from "react-router-dom";
 
-export default Inspiration;
+const InspirationHub = () => {
+  return <Navigate to="/community" replace />;
+};
+
+export default InspirationHub;

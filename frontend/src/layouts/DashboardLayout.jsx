@@ -3,11 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   HeartPulse,
-  Activity,
-  Apple,
-  Sparkles,
   TrendingUp,
-  Brain,
   GraduationCap,
   ShieldAlert,
   Shield,
@@ -20,29 +16,28 @@ import {
   X,
   Plus,
   Minus,
-  Users
+  Users,
+
+  MapPin,
+  ShieldCheck,
+  Wallet,
+  ScanSearch
 } from "lucide-react";
 import toast from "react-hot-toast";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-if (!API_BASE_URL) console.warn('VITE_API_BASE_URL is not set. Notifications API calls will be skipped.');
 
 const navItems = [
   { label: "Overview", path: "/dashboard", icon: LayoutDashboard },
   { label: "Emergency SOS", path: "/emergency", icon: ShieldAlert },
-  { label: "Women's Health", path: "/health", icon: HeartPulse },
-  { label: "Menstrual Cycle", path: "/menstrual", icon: Sparkles },
-  { label: "Nutrition", path: "/nutrition", icon: Apple },
-  { label: "Fitness", path: "/fitness", icon: Activity },
-  { label: "Mental Wellness", path: "/mental", icon: Brain },
-  { label: "Career & Grants", path: "/career", icon: GraduationCap },
-  { label: "Inspiration", path: "/inspiration", icon: Sparkles },
-  { label: "Analytics", path: "/analytics", icon: TrendingUp },
-  { label: "Reminders", path: "/reminder", icon: Bell },
-  { label: "Saved Resources", path: "/saved", icon: Bookmark },
-  { label: "Community & Rights", path: "/community", icon: Users },
-  { label: "Notifications", path: "/notifications", icon: Bell },
+  { label: "Safe Route", path: "/safe-route", icon: MapPin },
+  { label: "Digital Safety Analyzer", path: "/safety-analyzer", icon: ShieldCheck },
+  { label: "Footprint Scanner",       path: "/footprint-scanner", icon: ScanSearch },
+  { label: "Wellness Hub",            path: "/wellness",          icon: HeartPulse },
+  { label: "Career & Grants",         path: "/career",            icon: GraduationCap },
+  { label: "Financial Coach",         path: "/financial-coach",   icon: Wallet },
+  { label: "Community & Rights",      path: "/community",         icon: Users },
+  { label: "Analytics",               path: "/analytics",         icon: TrendingUp },
+  { label: "Reminders",               path: "/reminder",          icon: Bell },
+  { label: "Saved Resources",         path: "/saved",             icon: Bookmark },
   { label: "Feedback", path: "/feedback", icon: MessageSquareHeart },
   { label: "Settings & Profile", path: "/profile", icon: User },
 ];
@@ -54,7 +49,6 @@ function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${zoomLevel}%`;
@@ -62,22 +56,6 @@ function DashboardLayout() {
       document.documentElement.style.fontSize = "100%";
     };
   }, [zoomLevel]);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!API_BASE_URL || !token) return;
-
-    const load = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/notifications`, { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json();
-        if (data.success) setUnreadCount(data.unreadCount || 0);
-      } catch {
-        // ignore
-      }
-    };
-    load();
-  }, []);
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 10, 130));
@@ -96,7 +74,53 @@ function DashboardLayout() {
     navigate("/login");
   };
 
-  const currentNav = navItems.find(item => item.path === location.pathname);
+  const currentNav = navItems.find(item => item.path === location.pathname ||
+    (item.path === "/wellness" && location.pathname.startsWith("/wellness")) ||
+    (item.path === "/safe-route" && location.pathname.startsWith("/safe-route")) ||
+    (item.path === "/safety-analyzer" && location.pathname.startsWith("/safety-analyzer")) ||
+    (item.path === "/financial-coach" && location.pathname.startsWith("/financial-coach")) ||
+    (item.path === "/footprint-scanner" && location.pathname.startsWith("/footprint-scanner")) ||
+    (item.path === "/community" && location.pathname.startsWith("/community"))
+  );
+  
+  // Handle Wellness Hub, Safe Route, and Community & Rights page titles
+  const getPageTitle = () => {
+    if (location.pathname === "/wellness" || location.pathname.startsWith("/wellness")) {
+      const searchParams = new URLSearchParams(location.search);
+      const tab = searchParams.get("tab");
+      const tabTitles = {
+        "overview": "Wellness Hub",
+        "women-health": "Women's Health",
+        "menstrual": "Menstrual Cycle",
+        "nutrition": "Nutrition",
+        "nutrition-ai": "Nutrition AI",
+        "fitness": "Fitness",
+        "mental": "Mental Wellness"
+      };
+      return tabTitles[tab] || "Wellness Hub";
+    }
+    if (location.pathname === "/community" || location.pathname.startsWith("/community")) {
+      const searchParams = new URLSearchParams(location.search);
+      const tab = searchParams.get("tab");
+      const tabTitles = {
+        "dashboard": "Community & Rights Hub",
+        "assistant": "Rights Action Assistant",
+        "complaint": "Complaint & Letter Builder",
+        "tracker": "Personal Case & Action Tracker",
+        "circles": "Community Support Circles",
+        "directory": "Find Help & Support Directory",
+        "navigator": "Rights & Support Eligibility",
+        "decoder": "Document Decoder",
+        "talk": "Difficult Conversation & Letter Assistant",
+        "library": "Trusted Knowledge & Resource Library"
+      };
+      return tabTitles[tab] || "Community & Rights";
+    }
+    if (location.pathname.startsWith("/safety-analyzer")) {
+      return "Digital Safety Analyzer";
+    }
+    return currentNav?.label || "Safety & Wellness";
+  };
 
   return (
     <div className="flex min-h-screen bg-[#FBF9F7] text-[#1E1B18]">
@@ -127,7 +151,12 @@ function DashboardLayout() {
         <nav className="h-[calc(100vh-8.5rem)] overflow-y-auto px-3.5 py-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path ||
+              (item.path === "/wellness" && location.pathname.startsWith("/wellness")) ||
+              (item.path === "/safe-route" && location.pathname.startsWith("/safe-route")) ||
+              (item.path === "/safety-analyzer" && location.pathname.startsWith("/safety-analyzer")) ||
+              (item.path === "/financial-coach" && location.pathname.startsWith("/financial-coach")) ||
+              (item.path === "/footprint-scanner" && location.pathname.startsWith("/footprint-scanner"));
             const isEmergency = item.path === "/emergency";
 
             return (
@@ -153,16 +182,6 @@ function DashboardLayout() {
         {/* User Account / Sign Out at Bottom */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-[#EDE6E2] bg-white p-3.5">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/notifications')}
-              className="relative rounded-lg p-1.5 text-[#78726B] hover:bg-[#F6EFEA] hover:text-[#1E1B18]"
-              title="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-              {unreadCount > 0 && (
-                <span className="absolute 1 top-1 right-1 h-2 w-2 rounded-full bg-[#BA2626]" />
-              )}
-            </button>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F6EFEA] text-xs font-semibold text-[#8C3737]">
               {user.name ? user.name[0].toUpperCase() : "U"}
             </div>
@@ -182,7 +201,7 @@ function DashboardLayout() {
       </aside>
 
       {/* Main App Content Area */}
-      <div className="flex flex-1 flex-col md:pl-64">
+      <div className="flex min-w-0 flex-1 flex-col md:pl-64">
         {/* Top Header */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#EDE6E2] bg-[#FBF9F7]/90 px-6 backdrop-blur-md">
           <div className="flex items-center gap-3">
@@ -194,7 +213,7 @@ function DashboardLayout() {
               <Menu className="h-5 w-5" />
             </button>
             <h1 className="font-serif text-lg font-semibold tracking-tight text-[#1E1B18]">
-              {currentNav?.label || "Safety & Wellness"}
+              {getPageTitle()}
             </h1>
           </div>
 

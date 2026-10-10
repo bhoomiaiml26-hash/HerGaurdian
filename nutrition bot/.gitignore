@@ -1,0 +1,44 @@
+# Secrets - NEVER commit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+venv/
+.venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Flask instance
+instance/
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Temp files created by this project
+_scan.py
+_validate.py
+_smoke_test.py

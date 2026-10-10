@@ -6,7 +6,7 @@ import {
   Dumbbell,
   Brain,
   GraduationCap,
-  BookOpen,
+  Users,
 } from "lucide-react";
 
 const features = [
@@ -41,9 +41,9 @@ const features = [
     description: "Career advice, learning resources, and scholarships for women.",
   },
   {
-    icon: BookOpen,
-    title: "Inspiration",
-    description: "Motivational stories, quotes, and empowering articles.",
+    icon: Users,
+    title: "Community & Rights",
+    description: "Legal guidance, action plans, complaint builder, and mutual support circles.",
   },
 ];
 

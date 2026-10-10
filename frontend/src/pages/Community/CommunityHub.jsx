@@ -1,261 +1,356 @@
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowRight,
-  BookOpen,
-  ExternalLink,
-  HeartHandshake,
-  Phone,
-  ShieldCheck,
+  LayoutDashboard,
+  Scale,
+  FileText,
+  BookmarkCheck,
   Users,
+  Search,
+  FileCheck,
+  HelpCircle,
+  MessageSquare,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import ShareButton from '../../components/common/ShareButton';
-import womenEmpowermentOrgs, { womenEmpowermentSchemes } from '../../data/womenEmpowermentOrgs';
+import { getSupportCases } from '../../services/communityService';
 
-function CommunityHub() {
-  const pageTitle = 'Advocacy Network & Verified Resources';
-  const pageSummary = 'Accredited non-profits, statutory schemes, and emergency legal advocacy for women.';
+// Modular Sub-tabs
+import CommunityHomeTab from './components/CommunityHomeTab';
+import RightsAssistantTab from './components/RightsAssistantTab';
+import ComplaintBuilderTab from './components/ComplaintBuilderTab';
+import CaseTrackerTab from './components/CaseTrackerTab';
+import SupportCirclesTab from './components/SupportCirclesTab';
+import FindHelpTab from './components/FindHelpTab';
+import EligibilityNavigatorTab from './components/EligibilityNavigatorTab';
+import DocumentDecoderTab from './components/DocumentDecoderTab';
+import LetterAssistantTab from './components/LetterAssistantTab';
+import KnowledgeLibraryTab from './components/KnowledgeLibraryTab';
 
-  const overviewCards = useMemo(
-    () => [
-      {
-        label: 'Accredited Organizations',
-        value: womenEmpowermentOrgs.length,
-        icon: Users,
-      },
-      {
-        label: 'Statutory Welfare Schemes',
-        value: womenEmpowermentSchemes.length,
-        icon: ShieldCheck,
-      },
-      {
-        label: 'Dedicated Helpline',
-        value: '181',
-        icon: Phone,
-      },
-    ],
-    [],
-  );
+const tabs = [
+  { id: 'dashboard', label: 'Home Dashboard', icon: LayoutDashboard },
+  { id: 'assistant', label: 'Rights Assistant', icon: Scale },
+  { id: 'complaint', label: 'Complaint Builder', icon: FileText },
+  { id: 'tracker', label: 'My Cases & Tasks', icon: BookmarkCheck },
+  { id: 'circles', label: 'Support Circles', icon: Users },
+  { id: 'directory', label: 'Find Help Directory', icon: Search },
+  { id: 'navigator', label: 'Eligibility Navigator', icon: FileCheck },
+  { id: 'decoder', label: 'Document Decoder', icon: HelpCircle },
+  { id: 'talk', label: 'Conversation Helper', icon: MessageSquare },
+  { id: 'library', label: 'Rights Library', icon: BookOpen },
+];
 
-  const focusAreas = useMemo(() => {
-    const allAreas = womenEmpowermentOrgs.flatMap((org) => org.focusAreas || []);
-    return Array.from(new Set(allAreas));
+export default function CommunityHub() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'dashboard';
+
+  const [cases, setCases] = useState([]);
+  const [passedComplaintCategory, setPassedComplaintCategory] = useState('posh');
+  const [passedComplaintFacts, setPassedComplaintFacts] = useState('');
+
+  // Horizontal navigation scroll states & refs
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const navRef = useRef(null);
+  const tabRefs = useRef({});
+
+  // Fetch private cases count & recent list for dashboard
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        const res = await getSupportCases();
+        if (res.success) {
+          setCases(res.cases || []);
+        }
+      } catch (_err) {
+        // Not authenticated or network error; cases remain empty
+      }
+    };
+    fetchCases();
   }, []);
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://herguardian.ai/community';
+  // Check scroll position to dynamically show/hide scroll buttons and edge indicators
+  const checkScroll = useCallback(() => {
+    const container = navRef.current;
+    if (!container) return;
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const maxScroll = scrollWidth - clientWidth;
+
+    setCanScrollLeft(scrollLeft > 2);
+    setCanScrollRight(scrollLeft < maxScroll - 2);
+  }, []);
+
+  // Smoothly center the active tab into the visible viewport
+  const scrollToActiveTab = useCallback((smooth = true) => {
+    const activeEl = tabRefs.current[currentTab];
+    const container = navRef.current;
+    if (!activeEl || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const elRect = activeEl.getBoundingClientRect();
+
+    // 44px buffer for edge buttons/gradients so tab is completely unobstructed
+    const buffer = 44;
+    const isClippedLeft = elRect.left < containerRect.left + buffer;
+    const isClippedRight = elRect.right > containerRect.right - buffer;
+
+    if (isClippedLeft || isClippedRight) {
+      const elOffsetFromContainerLeft = elRect.left - containerRect.left + container.scrollLeft;
+      const targetScrollLeft = elOffsetFromContainerLeft - (container.clientWidth / 2) + (elRect.width / 2);
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      const boundedScroll = Math.max(0, Math.min(targetScrollLeft, maxScroll));
+
+      container.scrollTo({
+        left: boundedScroll,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+  }, [currentTab]);
+
+  // Click scroll buttons handler
+  const scrollByDirection = (direction) => {
+    const container = navRef.current;
+    if (!container) return;
+    const scrollAmount = Math.max(220, Math.round(container.clientWidth * 0.45));
+    const targetScroll =
+      direction === 'left'
+        ? container.scrollLeft - scrollAmount
+        : container.scrollLeft + scrollAmount;
+
+    container.scrollTo({
+      left: targetScroll,
+      behavior: 'smooth',
+    });
+  };
+
+  // Convert mouse-wheel vertical delta over navigation bar to horizontal scrolling
+  useEffect(() => {
+    const container = navRef.current;
+    if (!container) return;
+
+    const handleWheel = (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (maxScroll > 1) {
+          const atStart = container.scrollLeft <= 0 && e.deltaY < 0;
+          const atEnd = container.scrollLeft >= maxScroll - 1 && e.deltaY > 0;
+
+          if (!atStart && !atEnd) {
+            e.preventDefault();
+            container.scrollLeft += e.deltaY;
+          }
+        }
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Center active tab on mount (including direct navigation via URL like ?tab=navigator)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToActiveTab(false);
+      checkScroll();
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [scrollToActiveTab, checkScroll]);
+
+  // When active tab changes, smoothly scroll into view
+  useEffect(() => {
+    scrollToActiveTab(true);
+    checkScroll();
+  }, [currentTab, scrollToActiveTab, checkScroll]);
+
+  // Handle window and container resize
+  useEffect(() => {
+    const container = navRef.current;
+    if (!container) return;
+
+    checkScroll();
+    const handleResize = () => checkScroll();
+    window.addEventListener('resize', handleResize);
+
+    let resizeObserver;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => checkScroll());
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
+    };
+  }, [checkScroll]);
+
+  const handleSelectTab = (tabId) => {
+    setSearchParams({ tab: tabId });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSwitchToComplaint = (category, facts) => {
+    setPassedComplaintCategory(category);
+    setPassedComplaintFacts(facts);
+    handleSelectTab('complaint');
+  };
+
+  const handleCaseCreated = (newCase) => {
+    setCases((prev) => [newCase, ...prev]);
+  };
 
   return (
-    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] space-y-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        {/* Header Banner */}
-        <div className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-md bg-[#F6EFEA] px-2.5 py-1 text-xs font-semibold text-[#8C3737]">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Verified Legal &amp; Welfare Directory</span>
-              </div>
-              <h1 className="font-serif text-2xl font-bold tracking-tight text-[#1E1B18] sm:text-3xl lg:text-4xl">
-                Advocacy Network &amp; Verified Support Programs
-              </h1>
-              <p className="max-w-3xl text-xs sm:text-sm leading-relaxed text-[#4F4A45]">
-                {pageSummary} Access direct contact channels for crisis centers, legal aid cells, financial security grants, and grassroots shelters.
-              </p>
-            </div>
-            <div className="flex flex-wrap sm:flex-nowrap gap-3 xl:w-[380px]">
-              <ShareButton title={pageTitle} text={pageSummary} url={shareUrl} className="w-full" />
-              <a
-                href="mailto:support@herguardian.ai?subject=Advocacy Network Inquiry"
-                className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#8C3737] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#752B2B]"
+    <div className="min-h-screen bg-[#FBF9F7] text-[#1E1B18] pb-16 w-full max-w-full">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 w-full min-w-0">
+        {/* Module Tab Navigation Bar */}
+        <nav
+          aria-label="Community & Rights Navigation"
+          className="relative z-20 w-full min-w-0 max-w-full rounded-2xl border border-[#EDE6E2] bg-white/95 backdrop-blur-md p-1.5 sm:p-2 shadow-xs transition-shadow"
+        >
+          <div className="relative flex items-center w-full min-w-0">
+            {/* Left Scroll Button & Edge Fade Indicator */}
+            <div
+              className={`pointer-events-none absolute left-0 top-0 bottom-0 z-10 flex items-center pl-1 pr-6 bg-gradient-to-r from-white via-white/90 to-transparent rounded-l-xl transition-opacity duration-200 ${
+                canScrollLeft ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => scrollByDirection('left')}
+                disabled={!canScrollLeft}
+                tabIndex={canScrollLeft ? 0 : -1}
+                aria-label="Scroll tabs left"
+                className="pointer-events-auto flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[#EDE6E2] bg-white text-[#4F4A45] shadow-xs transition-all hover:bg-[#F6EFEA] hover:text-[#8C3737] hover:border-[#8C3737]/30 focus-visible:ring-2 focus-visible:ring-[#8C3737] cursor-pointer disabled:cursor-default"
               >
-                <HeartHandshake className="h-3.5 w-3.5" /> Support Desk
-              </a>
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+              </button>
             </div>
-          </div>
-        </div>
 
-        {/* Metric Cards */}
-        <section className="grid gap-4 sm:grid-cols-3">
-          {overviewCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.label}
-                className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs flex items-center justify-between"
-              >
-                <div>
-                  <p className="text-xs font-medium text-[#78726B]">{card.label}</p>
-                  <p className="mt-1 font-serif text-2xl font-bold text-[#1E1B18]">{card.value}</p>
-                </div>
-                <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#F6EFEA] text-[#8C3737]">
-                  <Icon className="h-5 w-5" />
-                </span>
-              </div>
-            );
-          })}
-        </section>
+            {/* Scrollable Tabs Track */}
+            <div
+              ref={navRef}
+              role="tablist"
+              aria-label="Community & Rights Navigation Tabs"
+              onScroll={checkScroll}
+              className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5 px-1 w-full min-w-0 scroll-smooth focus:outline-hidden"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = currentTab === tab.id;
 
-        {/* Organizations Section */}
-        <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
-          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-[#EDE6E2] pb-6">
-            <div>
-              <h2 className="font-serif text-xl font-bold text-[#1E1B18]">Accredited Partner Organizations</h2>
-              <p className="mt-1 text-xs text-[#78726B]">Vetted non-governmental agencies offering emergency shelter, legal counseling, and career training.</p>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {focusAreas.map((area) => (
-                <span key={area} className="rounded-md border border-[#EDE6E2] bg-[#FBF9F7] px-2.5 py-1 text-[11px] font-medium text-[#4F4A45]">
-                  {area}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            {womenEmpowermentOrgs.map((org) => (
-              <article
-                key={org.id}
-                className="flex flex-col justify-between rounded-xl border border-[#EDE6E2] bg-[#FBF9F7] p-6 transition hover:border-[#8C3737]/30"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-white border border-[#EDE6E2] shrink-0">
-                      {org.logo ? <img src={org.logo} alt={`${org.name} logo`} className="h-8 w-8 object-contain" /> : <Users className="h-5 w-5 text-[#8C3737]" />}
-                    </div>
-                    <div>
-                      <h3 className="font-serif text-base font-semibold text-[#1E1B18]">{org.name}</h3>
-                      <p className="text-xs text-[#78726B]">{org.location}</p>
-                    </div>
-                  </div>
-
-                  <p className="text-xs leading-relaxed text-[#4F4A45]">{org.description}</p>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-lg border border-[#EDE6E2] bg-white p-3">
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-[#78726B]">Mission</p>
-                      <p className="mt-1 text-xs text-[#4F4A45]">{org.mission}</p>
-                    </div>
-                    <div className="rounded-lg border border-[#EDE6E2] bg-white p-3">
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-[#78726B]">Core Services</p>
-                      <p className="mt-1 text-xs text-[#4F4A45]">{org.services.slice(0, 2).join(", ")}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-[#EDE6E2] flex items-center justify-between gap-2">
-                  <div className="flex gap-2">
-                    <a
-                      href={org.website}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#EDE6E2] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA]"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Website
-                    </a>
-                    <a
-                      href={`tel:${org.contact}`}
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#EDE6E2] bg-white px-3 py-1.5 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA]"
-                    >
-                      <Phone className="h-3 w-3" /> Call
-                    </a>
-                  </div>
-                  <a
-                    href={org.volunteerLink}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-lg bg-[#8C3737] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#752B2B]"
+                return (
+                  <button
+                    key={tab.id}
+                    ref={(el) => {
+                      if (el) tabRefs.current[tab.id] = el;
+                    }}
+                    role="tab"
+                    id={`tab-${tab.id}`}
+                    aria-selected={isActive}
+                    aria-controls={`panel-${tab.id}`}
+                    onClick={() => handleSelectTab(tab.id)}
+                    className={`inline-flex items-center gap-2 shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-[#8C3737] text-white shadow-xs'
+                        : 'text-[#4F4A45] hover:bg-[#F6EFEA] hover:text-[#1E1B18]'
+                    }`}
                   >
-                    Volunteer / Donate
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Welfare Schemes */}
-        <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#EDE6E2] pb-6">
-            <div>
-              <h2 className="font-serif text-xl font-bold text-[#1E1B18]">Statutory Welfare &amp; Protection Programs</h2>
-              <p className="mt-1 text-xs text-[#78726B]">Official schemes offering safe housing, educational subsidies, and rehabilitation grants.</p>
-            </div>
-            <div className="inline-flex items-center gap-1.5 rounded-md bg-[#FBF9F7] border border-[#EDE6E2] px-3 py-1 text-xs text-[#4F4A45]">
-              <BookOpen className="h-3.5 w-3.5 text-[#8C3737]" /> Verified Official Portals
-            </div>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            {womenEmpowermentSchemes.map((scheme) => (
-              <div
-                key={scheme.id}
-                className="flex flex-col justify-between rounded-xl border border-[#EDE6E2] bg-[#FBF9F7] p-6"
-              >
-                <div>
-                  <div className="flex items-center gap-2.5 text-[#1E1B18]">
-                    <ShieldCheck className="h-4 w-4 text-[#286646]" />
-                    <h3 className="font-serif text-base font-semibold">{scheme.name}</h3>
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-[#4F4A45]">{scheme.description}</p>
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {scheme.benefits.map((benefit) => (
-                      <span key={benefit} className="rounded-md border border-[#EDE6E2] bg-white px-2.5 py-1 text-[11px] text-[#4F4A45]">
-                        {benefit}
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-[#8C3737]'}`} />
+                    <span>{tab.label}</span>
+                    {tab.id === 'tracker' && cases.length > 0 && (
+                      <span
+                        className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                          isActive ? 'bg-white text-[#8C3737]' : 'bg-[#F6EFEA] text-[#8C3737]'
+                        }`}
+                      >
+                        {cases.length}
                       </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-[#EDE6E2] flex items-center justify-between gap-3">
-                  <a
-                    href={scheme.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 rounded-lg border border-[#EDE6E2] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#1E1B18] hover:bg-[#F6EFEA]"
-                  >
-                    Official Portal
-                  </a>
-                  <a
-                    href={`tel:${scheme.contact}`}
-                    className="inline-flex items-center gap-1 rounded-lg bg-[#8C3737] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#752B2B]"
-                  >
-                    <Phone className="h-3 w-3" /> Helpline
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Guidance Instructions Panel */}
-        <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 sm:p-8 shadow-xs">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-3">
-              <h3 className="font-serif text-xl font-bold text-[#1E1B18]">Resource Navigation Protocol</h3>
-              <p className="text-xs leading-relaxed text-[#4F4A45]">
-                1. Identify the organization matching your immediate physical or legal requirement.<br />
-                2. Contact the verified helpline numbers directly from mobile or utilize the official government portal links.<br />
-                3. Keep case reference numbers and legal documents securely documented in your private records.
-              </p>
+                    )}
+                  </button>
+                );
+              })}
+              {/* Subtle end spacer to ensure final tab has breathing room and is not clipped */}
+              <div className="w-4 sm:w-6 shrink-0" aria-hidden="true" />
             </div>
 
-            <div className="flex flex-col justify-center rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] p-5">
-              <h4 className="font-serif text-sm font-semibold text-[#1E1B18]">Share This Directory</h4>
-              <p className="mt-1 text-xs text-[#78726B]">Empower others in your network by circulating verified safety links.</p>
-              <div className="mt-4">
-                <ShareButton
-                  title="Women Advocacy & Resource Network"
-                  text="Directory of verified non-profits and government welfare schemes for women."
-                  url={shareUrl}
-                  className="w-full"
-                />
-              </div>
+            {/* Right Scroll Button & Edge Fade Indicator */}
+            <div
+              className={`pointer-events-none absolute right-0 top-0 bottom-0 z-10 flex items-center pr-1 pl-6 bg-gradient-to-l from-white via-white/90 to-transparent rounded-r-xl transition-opacity duration-200 ${
+                canScrollRight ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => scrollByDirection('right')}
+                disabled={!canScrollRight}
+                tabIndex={canScrollRight ? 0 : -1}
+                aria-label="Scroll tabs right"
+                className="pointer-events-auto flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-[#EDE6E2] bg-white text-[#4F4A45] shadow-xs transition-all hover:bg-[#F6EFEA] hover:text-[#8C3737] hover:border-[#8C3737]/30 focus-visible:ring-2 focus-visible:ring-[#8C3737] cursor-pointer disabled:cursor-default"
+              >
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              </button>
             </div>
           </div>
-        </section>
+        </nav>
+
+        {/* Tab Content Display */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentTab}
+            id={`panel-${currentTab}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${currentTab}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+          >
+            {currentTab === 'dashboard' && (
+              <CommunityHomeTab
+                onSelectTab={handleSelectTab}
+                casesCount={cases.length}
+                recentCases={cases}
+              />
+            )}
+
+            {currentTab === 'assistant' && (
+              <RightsAssistantTab
+                onSwitchToComplaint={handleSwitchToComplaint}
+                onCaseCreated={handleCaseCreated}
+              />
+            )}
+
+            {currentTab === 'complaint' && (
+              <ComplaintBuilderTab
+                initialCategory={passedComplaintCategory}
+                initialFacts={passedComplaintFacts}
+              />
+            )}
+
+            {currentTab === 'tracker' && (
+              <CaseTrackerTab onCasesChanged={setCases} />
+            )}
+
+            {currentTab === 'circles' && <SupportCirclesTab />}
+
+            {currentTab === 'directory' && <FindHelpTab />}
+
+            {currentTab === 'navigator' && (
+              <EligibilityNavigatorTab onCaseCreated={handleCaseCreated} />
+            )}
+
+            {currentTab === 'decoder' && <DocumentDecoderTab />}
+
+            {currentTab === 'talk' && <LetterAssistantTab />}
+
+            {currentTab === 'library' && (
+              <KnowledgeLibraryTab onSelectTab={handleSelectTab} />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
 }
-
-export default CommunityHub;

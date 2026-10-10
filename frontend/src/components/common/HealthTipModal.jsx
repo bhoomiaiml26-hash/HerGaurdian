@@ -1,6 +1,22 @@
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import ShareButton from "./ShareButton";
+import YouTubePlayer from "./YouTubePlayer";
+
+/**
+ * Extracts a YouTube video ID from a full embed/watch URL or returns the
+ * string directly if it is already a bare 11-character video ID.
+ */
+function extractVideoId(value) {
+  if (!value) return null;
+  // Already a bare ID (11 alphanum chars)
+  if (/^[A-Za-z0-9_-]{11}$/.test(value)) return value;
+  // youtube.com/embed/ID or youtube.com/watch?v=ID or youtu.be/ID
+  const match = value.match(
+    /(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+  return match ? match[1] : null;
+}
 
 function HealthTipModal({ tip, onClose }) {
   if (!tip) return null;
@@ -34,21 +50,62 @@ function HealthTipModal({ tip, onClose }) {
 
         <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-8 space-y-6 text-sm leading-relaxed text-[#4F4A45] sm:text-base">
           {tip.image && (
-            <div className="overflow-hidden rounded-lg border border-[#EDE6E2]">
-              <img src={tip.image} alt={tip.title} className="w-full object-cover" />
+            <div className="overflow-hidden rounded-lg border border-[#EDE6E2] max-h-72">
+              <img
+                src={tip.image}
+                alt={tip.alt || tip.title}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
             </div>
           )}
 
           {tip.description && (
             <div>
-              <p className="text-sm leading-relaxed text-[#4F4A45]">{tip.description}</p>
+              <p className="text-sm font-medium leading-relaxed text-[#1E1B18]">{tip.description}</p>
             </div>
           )}
 
-          {(tip.details || tip.readMore || tip.description) && (
+          {(tip.overview || tip.details || tip.readMore) && (
             <div>
-              <h3 className="mb-2 font-serif text-base font-bold text-[#1E1B18]">Protocol Details</h3>
-              <p className="text-sm leading-relaxed text-[#4F4A45]">{tip.details || tip.readMore || tip.description}</p>
+              <h3 className="mb-2 font-serif text-base font-bold text-[#1E1B18]">Protocol Overview</h3>
+              <p className="text-sm leading-relaxed text-[#4F4A45]">{tip.overview || tip.details || tip.readMore}</p>
+            </div>
+          )}
+
+          {tip.healthyHabits?.length > 0 && (
+            <div>
+              <h3 className="mb-2 font-serif text-base font-bold text-[#1E1B18]">Evidence-Based Healthy Habits</h3>
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-[#4F4A45]">
+                {tip.healthyHabits.map((habit, idx) => (
+                  <li key={idx}>{habit}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {tip.nutritionConsiderations?.length > 0 && (
+            <div>
+              <h3 className="mb-2 font-serif text-base font-bold text-[#1E1B18]">Nutrition & Lifestyle Considerations</h3>
+              <ul className="list-disc space-y-1.5 pl-5 text-sm text-[#4F4A45]">
+                {tip.nutritionConsiderations.map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {(tip.whenToSeekHelp || tip.consultDoctor) && (
+            <div className="rounded-lg border border-[#BA2626]/20 bg-[#FDF2F2] p-4">
+              <h3 className="mb-1 font-serif text-sm font-bold text-[#BA2626]">When to Seek Professional Medical Care</h3>
+              <p className="text-xs leading-relaxed text-[#BA2626]/90">{tip.whenToSeekHelp || tip.consultDoctor}</p>
+            </div>
+          )}
+
+          {tip.disclaimer && (
+            <div className="rounded-lg border border-[#EDE6E2] bg-[#FAF8F6] p-3 text-[11px] leading-relaxed text-[#78726B]">
+              <span className="font-semibold text-[#4F4A45]">Medical Disclaimer: </span>
+              {tip.disclaimer}
             </div>
           )}
 
@@ -264,20 +321,26 @@ function HealthTipModal({ tip, onClose }) {
             </div>
           )}
 
-          {tip.youtubeVideo && (
-            <div>
-              <h3 className="mb-2 font-serif text-base font-bold text-[#1E1B18]">Reference Media</h3>
-              <div className="aspect-video overflow-hidden rounded-lg border border-[#EDE6E2] bg-[#1E1B18]">
-                <iframe
-                  title={tip.title}
-                  src={tip.youtubeVideo}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="h-full w-full"
+          {/* Video — supports both object (tip.video) and legacy embed-URL string (tip.youtubeVideo) */}
+          {(() => {
+            // Prefer structured video object; fall back to legacy youtubeVideo string
+            const vid = tip.video || null;
+            const legacyId = !vid ? extractVideoId(tip.youtubeVideo) : null;
+            const videoId = vid ? vid.id : legacyId;
+            if (!videoId) return null;
+            return (
+              <div>
+                <h3 className="mb-3 font-serif text-base font-bold text-[#1E1B18]">Watch & Learn</h3>
+                <YouTubePlayer
+                  videoId={videoId}
+                  title={vid?.title || tip.title}
+                  source={vid?.source || vid?.creator}
+                  description={vid?.description}
+                  fallbackQuery={vid?.title || tip.title}
                 />
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         <div className="border-t border-[#EDE6E2] bg-white px-6 py-4 sm:px-8">
@@ -285,7 +348,7 @@ function HealthTipModal({ tip, onClose }) {
             <ShareButton
               title={tip.title}
               text={tip.description || tip.readMore || ''}
-              url={tip.youtubeVideo}
+              url={tip.video ? `https://www.youtube.com/watch?v=${tip.video.id}` : ''}
               className="w-full sm:w-auto"
             />
             <button

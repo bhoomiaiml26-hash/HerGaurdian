@@ -78,7 +78,7 @@ const detailedExercises = [
       "Stay hydrated",
       "Listen to your body and reduce intensity when needed"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/6z5CM7K4nKQ",
+    youtubeVideo: "https://www.youtube.com/embed/gC_L9qAHVJ8",
   },
   {
     id: 3,
@@ -118,7 +118,7 @@ const detailedExercises = [
       "Avoid arching the spine",
       "Use a lighter band if form feels compromised"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/MuMxiUaO3vc",
+    youtubeVideo: "https://www.youtube.com/embed/8bbE64NuDTU",
   },
   {
     id: 4,
@@ -158,7 +158,7 @@ const detailedExercises = [
       "Move within your comfortable range",
       "Avoid if experiencing acute back pain"
     ],
-    youtubeVideo: "https://www.youtube.com/embed/m3WzJH-6f20",
+    youtubeVideo: "https://www.youtube.com/embed/g_tea8ZNk5A",
   },
   {
     id: 5,

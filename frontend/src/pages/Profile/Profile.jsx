@@ -1,5 +1,23 @@
 import { motion } from "framer-motion";
-import { BadgeCheck, Settings, UserRound, ArrowRight } from "lucide-react";
+import {
+  BadgeCheck,
+  Settings,
+  UserRound,
+  ArrowRight,
+  LayoutDashboard,
+  ShieldAlert,
+  MapPin,
+  ShieldCheck,
+  ScanSearch,
+  HeartPulse,
+  GraduationCap,
+  Wallet,
+  Users,
+  TrendingUp,
+  Bell,
+  Bookmark,
+  MessageSquareHeart,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
@@ -16,13 +34,19 @@ const defaultUser = {
 };
 
 const navigationItems = [
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Women's Health", path: "/health" },
-  { label: "Nutrition", path: "/nutrition" },
-  { label: "Fitness", path: "/fitness" },
-  { label: "Menstrual Wellness", path: "/menstrual" },
-  { label: "Emergency SOS", path: "/emergency" },
-  { label: "Health Reminder", path: "/reminder" },
+  { label: "Overview", path: "/dashboard", icon: LayoutDashboard },
+  { label: "Emergency SOS", path: "/emergency", icon: ShieldAlert },
+  { label: "Safe Route", path: "/safe-route", icon: MapPin },
+  { label: "Digital Safety Analyzer", path: "/safety-analyzer", icon: ShieldCheck },
+  { label: "Footprint Scanner", path: "/footprint-scanner", icon: ScanSearch },
+  { label: "Wellness Hub", path: "/wellness", icon: HeartPulse },
+  { label: "Career & Grants", path: "/career", icon: GraduationCap },
+  { label: "Financial Coach", path: "/financial-coach", icon: Wallet },
+  { label: "Community & Rights", path: "/community", icon: Users },
+  { label: "Analytics", path: "/analytics", icon: TrendingUp },
+  { label: "Reminders", path: "/reminder", icon: Bell },
+  { label: "Saved Resources", path: "/saved", icon: Bookmark },
+  { label: "Feedback", path: "/feedback", icon: MessageSquareHeart },
 ];
 
 function Profile() {
@@ -202,18 +226,39 @@ function Profile() {
           {/* Right Column */}
           <div>
             <section className="rounded-xl border border-[#EDE6E2] bg-white p-6 shadow-xs">
-              <h2 className="font-serif text-base font-semibold text-[#1E1B18] mb-4">Quick Navigation</h2>
-              <div className="space-y-2">
-                {navigationItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className="flex items-center justify-between rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] px-4 py-3 text-xs font-medium text-[#4F4A45] transition hover:border-[#8C3737]/30 hover:bg-[#F6EFEA] hover:text-[#1E1B18]"
-                  >
-                    <span>{item.label}</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-[#78726B]" />
-                  </Link>
-                ))}
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="font-serif text-base font-semibold text-[#1E1B18]">
+                    Quick Navigation
+                  </h2>
+                  <p className="mt-0.5 text-[11px] text-[#78726B]">
+                    Direct shortcuts to all active safety & wellness modules
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#F6EFEA] px-2 py-0.5 text-[10px] font-semibold text-[#8C3737]">
+                  {navigationItems.length} Modules
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1 max-h-[490px] overflow-y-auto pr-1.5">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className="group flex items-center justify-between rounded-lg border border-[#EDE6E2] bg-[#FBF9F7] px-3.5 py-2.5 text-xs font-medium text-[#4F4A45] transition hover:border-[#8C3737]/30 hover:bg-[#F6EFEA] hover:text-[#1E1B18]"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white text-[#8C3737] shadow-2xs group-hover:bg-[#8C3737] group-hover:text-white transition-colors">
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#78726B] group-hover:text-[#8C3737] group-hover:translate-x-0.5 transition-all" />
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           </div>
