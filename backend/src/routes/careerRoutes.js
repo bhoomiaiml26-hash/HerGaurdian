@@ -1,19 +1,11 @@
 import express from 'express';
 import protect from '../middleware/auth.js';
-import CareerRoadmap from '../models/CareerRoadmap.js';
-import SavedOpportunity from '../models/SavedOpportunity.js';
+import prisma from '../lib/prisma.js';
 import { analyzeSkillGap } from '../services/skillGapAnalyzer.js';
 import { getOpportunityFeed } from '../services/opportunityFeed.js';
 
 const router = express.Router();
 
-// ── SKILL GAP ANALYZER ───────────────────────────────────────────────────────
-
-/**
- * POST /api/career/skill-gap
- * Analyze skill gaps for any career role, specialization, or emerging discipline.
- * Protected route, user-scoped.
- */
 router.post('/skill-gap', protect, async (req, res, next) => {
   try {
     const { targetRole, currentSkills, educationLevel, experienceLevel, careerGoal } = req.body;
@@ -32,25 +24,18 @@ router.post('/skill-gap', protect, async (req, res, next) => {
   }
 });
 
-// ── CAREER ROADMAPS ──────────────────────────────────────────────────────────
-
-/**
- * GET /api/career/roadmaps
- * List all roadmaps for the current user
- */
 router.get('/roadmaps', protect, async (req, res, next) => {
   try {
-    const roadmaps = await CareerRoadmap.find({ user: req.user._id }).sort({ updatedAt: -1 }).lean();
+    const roadmaps = await prisma.careerRoadmap.findMany({
+      where: { userId: req.user.id },
+      orderBy: { updatedAt: 'desc' },
+    });
     res.json({ success: true, roadmaps });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * POST /api/career/roadmaps
- * Save a new career roadmap
- */
 router.post('/roadmaps', protect, async (req, res, next) => {
   try {
     const { careerGoal, educationLevel, currentSkills, availableHoursPerWeek, learningPace, budget, roadmapContent, stages, notes } = req.body;
@@ -59,17 +44,19 @@ router.post('/roadmaps', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Career goal is required' });
     }
 
-    const roadmap = await CareerRoadmap.create({
-      user: req.user._id,
-      careerGoal: careerGoal.trim().slice(0, 300),
-      educationLevel: (educationLevel || '').trim(),
-      currentSkills: (currentSkills || '').trim(),
-      availableHoursPerWeek: availableHoursPerWeek ? Number(availableHoursPerWeek) : null,
-      learningPace: learningPace || '',
-      budget: budget || '',
-      roadmapContent: (roadmapContent || '').slice(0, 50000),
-      stages: stages || [],
-      notes: (notes || '').trim().slice(0, 2000),
+    const roadmap = await prisma.careerRoadmap.create({
+      data: {
+        userId: req.user.id,
+        careerGoal: careerGoal.trim().slice(0, 300),
+        educationLevel: (educationLevel || '').trim(),
+        currentSkills: (currentSkills || '').trim(),
+        availableHoursPerWeek: availableHoursPerWeek ? Number(availableHoursPerWeek) : null,
+        learningPace: learningPace || '',
+        budget: budget || '',
+        roadmapContent: (roadmapContent || '').slice(0, 50000),
+        stages: stages || [],
+        notes: (notes || '').trim().slice(0, 2000),
+      },
     });
 
     res.status(201).json({ success: true, roadmap });
@@ -78,31 +65,30 @@ router.post('/roadmaps', protect, async (req, res, next) => {
   }
 });
 
-/**
- * PUT /api/career/roadmaps/:id
- * Update roadmap (tasks, notes, status, etc.)
- */
 router.put('/roadmaps/:id', protect, async (req, res, next) => {
   try {
-    const roadmap = await CareerRoadmap.findOne({ _id: req.params.id, user: req.user._id });
+    const roadmap = await prisma.careerRoadmap.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!roadmap) return res.status(404).json({ success: false, message: 'Roadmap not found' });
 
     const allowed = ['careerGoal', 'educationLevel', 'currentSkills', 'availableHoursPerWeek', 'learningPace', 'budget', 'roadmapContent', 'stages', 'notes', 'status'];
+    const data = {};
     for (const key of allowed) {
-      if (req.body[key] !== undefined) roadmap[key] = req.body[key];
+      if (req.body[key] !== undefined) data[key] = req.body[key];
     }
 
-    await roadmap.save();
-    res.json({ success: true, roadmap });
+    const updated = await prisma.careerRoadmap.update({
+      where: { id: roadmap.id },
+      data,
+    });
+
+    res.json({ success: true, roadmap: updated });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * PATCH /api/career/roadmaps/:id/task
- * Toggle a task complete/incomplete
- */
 router.patch('/roadmaps/:id/task', protect, async (req, res, next) => {
   try {
     const { stageIndex, taskIndex, completed } = req.body;
@@ -110,36 +96,43 @@ router.patch('/roadmaps/:id/task', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'stageIndex and taskIndex are required' });
     }
 
-    const roadmap = await CareerRoadmap.findOne({ _id: req.params.id, user: req.user._id });
+    const roadmap = await prisma.careerRoadmap.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!roadmap) return res.status(404).json({ success: false, message: 'Roadmap not found' });
 
-    if (!roadmap.stages[stageIndex]?.tasks[taskIndex]) {
+    const stages = Array.isArray(roadmap.stages) ? roadmap.stages.map(s => ({ ...s, tasks: [...(s.tasks || [])] })) : [];
+    if (!stages[stageIndex]?.tasks?.[taskIndex]) {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
-    roadmap.stages[stageIndex].tasks[taskIndex].completed = Boolean(completed);
-    roadmap.markModified('stages');
-    await roadmap.save();
-    res.json({ success: true, roadmap });
+    stages[stageIndex].tasks[taskIndex] = {
+      ...stages[stageIndex].tasks[taskIndex],
+      completed: Boolean(completed),
+    };
+
+    const updated = await prisma.careerRoadmap.update({
+      where: { id: roadmap.id },
+      data: { stages },
+    });
+
+    res.json({ success: true, roadmap: updated });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * DELETE /api/career/roadmaps/:id
- */
 router.delete('/roadmaps/:id', protect, async (req, res, next) => {
   try {
-    const roadmap = await CareerRoadmap.findOneAndDelete({ _id: req.params.id, user: req.user._id });
-    if (!roadmap) return res.status(404).json({ success: false, message: 'Roadmap not found' });
+    const result = await prisma.careerRoadmap.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) return res.status(404).json({ success: false, message: 'Roadmap not found' });
     res.json({ success: true, message: 'Roadmap deleted' });
   } catch (err) {
     next(err);
   }
 });
-
-// ── SAVED OPPORTUNITIES ──────────────────────────────────────────────────────
 
 router.get('/opportunities/feed', protect, async (req, res, next) => {
   try {
@@ -153,21 +146,18 @@ router.get('/opportunities/feed', protect, async (req, res, next) => {
   }
 });
 
-/**
- * GET /api/career/opportunities
- */
 router.get('/opportunities', protect, async (req, res, next) => {
   try {
-    const opps = await SavedOpportunity.find({ user: req.user._id }).sort({ createdAt: -1 }).lean();
+    const opps = await prisma.savedOpportunity.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
     res.json({ success: true, opportunities: opps });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * POST /api/career/opportunities
- */
 router.post('/opportunities', protect, async (req, res, next) => {
   try {
     const { opportunityId, title, organization, type, deadline, applicationUrl, status, notes, documents } = req.body;
@@ -176,61 +166,68 @@ router.post('/opportunities', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'opportunityId and title are required' });
     }
 
-    // Upsert — if already saved, return existing
-    let opp = await SavedOpportunity.findOne({ user: req.user._id, opportunityId });
-    if (opp) return res.json({ success: true, opportunity: opp, alreadySaved: true });
+    const existing = await prisma.savedOpportunity.findFirst({
+      where: { userId: req.user.id, opportunityId },
+    });
+    if (existing) return res.json({ success: true, opportunity: existing, alreadySaved: true });
 
-    opp = await SavedOpportunity.create({
-      user: req.user._id,
-      opportunityId,
-      title: title.trim().slice(0, 300),
-      organization: (organization || '').trim(),
-      type: type || 'other',
-      deadline: deadline ? new Date(deadline) : null,
-      applicationUrl: (applicationUrl || '').trim(),
-      status: status || 'interested',
-      notes: (notes || '').trim().slice(0, 2000),
-      documents: documents || [],
+    const opp = await prisma.savedOpportunity.create({
+      data: {
+        userId: req.user.id,
+        opportunityId,
+        title: title.trim().slice(0, 300),
+        organization: (organization || '').trim(),
+        type: type || 'other',
+        deadline: deadline ? new Date(deadline) : null,
+        applicationUrl: (applicationUrl || '').trim(),
+        status: status || 'interested',
+        notes: (notes || '').trim().slice(0, 2000),
+        documents: documents || [],
+      },
     });
 
     res.status(201).json({ success: true, opportunity: opp });
   } catch (err) {
-    if (err.code === 11000) {
-      const existing = await SavedOpportunity.findOne({ user: req.user._id, opportunityId: req.body.opportunityId }).lean();
+    if (err.code === 'P2002') {
+      const existing = await prisma.savedOpportunity.findFirst({
+        where: { userId: req.user.id, opportunityId: req.body.opportunityId },
+      });
       return res.json({ success: true, opportunity: existing, alreadySaved: true });
     }
     next(err);
   }
 });
 
-/**
- * PUT /api/career/opportunities/:id
- * Update status, notes, documents
- */
 router.put('/opportunities/:id', protect, async (req, res, next) => {
   try {
-    const opp = await SavedOpportunity.findOne({ _id: req.params.id, user: req.user._id });
+    const opp = await prisma.savedOpportunity.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!opp) return res.status(404).json({ success: false, message: 'Opportunity not found' });
 
     const allowed = ['status', 'notes', 'documents', 'deadline', 'applicationUrl'];
+    const data = {};
     for (const key of allowed) {
-      if (req.body[key] !== undefined) opp[key] = req.body[key];
+      if (req.body[key] !== undefined) data[key] = req.body[key];
     }
 
-    await opp.save();
-    res.json({ success: true, opportunity: opp });
+    const updated = await prisma.savedOpportunity.update({
+      where: { id: opp.id },
+      data,
+    });
+
+    res.json({ success: true, opportunity: updated });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * DELETE /api/career/opportunities/:id
- */
 router.delete('/opportunities/:id', protect, async (req, res, next) => {
   try {
-    const opp = await SavedOpportunity.findOneAndDelete({ _id: req.params.id, user: req.user._id });
-    if (!opp) return res.status(404).json({ success: false, message: 'Opportunity not found' });
+    const result = await prisma.savedOpportunity.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) return res.status(404).json({ success: false, message: 'Opportunity not found' });
     res.json({ success: true, message: 'Opportunity removed' });
   } catch (err) {
     next(err);

@@ -1,16 +1,14 @@
-import mongoose from 'mongoose';
+import prisma from '../lib/prisma.js';
 
 export const connectDB = async () => {
-  const mongoUri = process.env.MONGODB_URI;
-
-  if (!mongoUri) {
-    throw new Error('Missing required environment variable: MONGODB_URI');
+  try {
+    await prisma.$connect();
+    console.log('PostgreSQL connected');
+  } catch (error) {
+    throw new Error(`Database connection failed: ${error.message}`);
   }
-
-  await mongoose.connect(mongoUri);
-  console.log('MongoDB connected');
 };
 
 export const disconnectDB = async () => {
-  await mongoose.disconnect();
+  await prisma.$disconnect();
 };

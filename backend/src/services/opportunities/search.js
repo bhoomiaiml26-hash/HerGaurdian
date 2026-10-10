@@ -1,5 +1,4 @@
-import Opportunity from '../../models/Opportunity.js';
-import OpportunityPreference from '../../models/OpportunityPreference.js';
+import prisma from '../../lib/prisma.js';
 import { canonicalizeCity, canonicalizeCountry, cityTextMatches, citiesForSearch, isKnownCity } from './cityUtils.js';
 
 const tokens = (value) => String(value || '').toLowerCase().match(/[a-z0-9+#.]+/g) || [];
@@ -81,12 +80,12 @@ const sectionTitles = (city) => ({
 const SECTION_ORDER = { exactCity: 0, nearby: 1, remote: 2, india: 3, global: 4 };
 
 export const searchOpportunities = async ({ userId, params = {}, cacheResult = null, now = new Date() }) => {
+  const where = { expiresAt: { gt: now } };
+  if (params.region === 'global') where.region = 'global';
+
   const [storedPreferences, rawDocs] = await Promise.all([
-    OpportunityPreference.findOne({ user: userId }).lean(),
-    Opportunity.find({ expiresAt: { $gt: now }, ...(params.region === 'global' ? { region: 'global' } : {}) })
-      .sort({ postedAt: -1 })
-      .limit(10000)
-      .lean(),
+    prisma.opportunityPreference.findUnique({ where: { userId } }),
+    prisma.opportunity.findMany({ where, orderBy: { postedAt: 'desc' }, take: 10000 }),
   ]);
   const preferences = storedPreferences || { includeGlobal: true, roles: [], cities: [], workModes: [], levels: [], skills: [] };
   const docs = rawDocs.filter((job) => params.region === 'global'
@@ -142,10 +141,14 @@ export const searchOpportunities = async ({ userId, params = {}, cacheResult = n
   });
   const latestFetch = scored.reduce((latest, job) => job.fetchedAt && (!latest || job.fetchedAt > latest) ? job.fetchedAt : latest, null);
   const beforeLastVisit = storedPreferences?.lastVisitAt || null;
-  await OpportunityPreference.updateOne({ user: userId }, { $set: { lastVisitAt: now }, $setOnInsert: { user: userId } }, { upsert: true });
+  await prisma.opportunityPreference.upsert({
+    where: { userId },
+    update: { lastVisitAt: now },
+    create: { userId, lastVisitAt: now },
+  });
 
-  const strictIds = new Set(strictMatches.map((job) => String(job._id)));
-  const relaxedCount = visibleScored.filter((job) => !strictIds.has(String(job._id))).length;
+  const strictIds = new Set(strictMatches.map((job) => String(job.id)));
+  const relaxedCount = visibleScored.filter((job) => !strictIds.has(String(job.id))).length;
   const relaxed = Boolean(canBroadenCity && relaxedCount > 0);
   const message = relaxed && hasBroaderMatches
     ? requestedModes.includes('remote')

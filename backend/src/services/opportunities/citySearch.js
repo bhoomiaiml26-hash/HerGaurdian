@@ -1,5 +1,4 @@
-import Opportunity from '../../models/Opportunity.js';
-import OpportunitySearchCache from '../../models/OpportunitySearchCache.js';
+import prisma from '../../lib/prisma.js';
 import { fetchAdzuna } from './adzuna.js';
 import { fetchJooble } from './jooble.js';
 import { fetchJSearch } from './jsearch.js';
@@ -50,7 +49,11 @@ const remoteProviders = [
 
 const fetchRemoteProvider = async (provider, now) => {
   const locked = await runWithSearchKeyLock(`remote-provider|${provider.name}`, async () => {
-    const previous = await Opportunity.findOne({ source: provider.name }).sort({ fetchedAt: -1 }).select('_id fetchedAt').lean();
+    const previous = await prisma.opportunity.findFirst({
+      where: { source: provider.name },
+      orderBy: { fetchedAt: 'desc' },
+      select: { fetchedAt: true },
+    });
     if (previous?.fetchedAt && now.getTime() - new Date(previous.fetchedAt).getTime() < provider.intervalMs) {
       return { source: provider.name, listings: [], skipped: true, reused: true };
     }
@@ -77,42 +80,47 @@ const dedupeCityResults = (listings) => {
 const existingIdentityKeys = async (listings, now) => {
   const cities = [...new Set(listings.map((listing) => listing.city).filter(Boolean))];
   if (!cities.length) return new Set();
-  const docs = await Opportunity.find({ city: { $in: cities }, expiresAt: { $gt: now } })
-    .select('title company city')
-    .limit(3000)
-    .lean();
+  const docs = await prisma.opportunity.findMany({
+    where: { city: { in: cities }, expiresAt: { gt: now } },
+    select: { title: true, company: true, city: true },
+    take: 3000,
+  });
   return new Set(docs.map(identityKey));
 };
 
 const persistListings = async (listings, now) => {
   const batch = dedupeCityResults(listings);
   const priorIdentities = await existingIdentityKeys(batch, now);
-  const priorUrls = new Set(await Opportunity.distinct('url', { expiresAt: { $gt: now } }));
-  const writes = [];
+  const urlDocs = await prisma.opportunity.findMany({
+    where: { expiresAt: { gt: now } },
+    select: { url: true },
+  });
+  const priorUrls = new Set(urlDocs.map((o) => o.url));
+  const operations = [];
   for (const listing of batch) {
     const identity = identityKey(listing);
+    const data = { ...listing };
+    delete data.id;
     if (priorUrls.has(listing.url)) {
-      writes.push({ updateOne: { filter: { url: listing.url }, update: { $set: listing } } });
+      operations.push(prisma.opportunity.update({ where: { url: listing.url }, data }));
       priorIdentities.add(identity);
       continue;
     }
     if (priorIdentities.has(identity)) continue;
     priorIdentities.add(identity);
     priorUrls.add(listing.url);
-    writes.push({ updateOne: { filter: { url: listing.url }, update: { $set: listing }, upsert: true } });
+    operations.push(prisma.opportunity.upsert({ where: { url: listing.url }, update: data, create: data }));
   }
-  const upserts = writes.filter((write) => write.updateOne.upsert);
-  if (writes.length) {
-    try {
-      await Opportunity.bulkWrite(writes, { ordered: false });
-    } catch (error) {
-      const writeErrors = error.writeErrors || [];
-      const onlyDuplicateUrls = error.code === 11000 || (writeErrors.length > 0 && writeErrors.every((item) => item.code === 11000));
-      if (!onlyDuplicateUrls) throw error;
+
+  let upsertedCount = 0;
+  if (operations.length) {
+    for (let i = 0; i < operations.length; i += 500) {
+      await prisma.$transaction(operations.slice(i, i + 500));
     }
+    upsertedCount = operations.length;
   }
-  await Opportunity.deleteMany({ expiresAt: { $lte: now } });
-  return { listings: batch, upsertedCount: upserts.length };
+  await prisma.opportunity.deleteMany({ where: { expiresAt: { lte: now } } });
+  return { listings: batch, upsertedCount };
 };
 
 const sourceName = (result, provider) => result.status === 'fulfilled' ? result.value.source || provider.name : provider.name;
@@ -155,20 +163,23 @@ const performCityRefresh = async ({ city, country, role, level, now, providers =
   });
 
   const { listings, upsertedCount } = await persistListings(allListings, now);
-  const cache = await OpportunitySearchCache.findOneAndUpdate(
-    { key: buildSearchCacheKey({ city, country, role, level }) },
-    {
-      $set: {
-        city: city || 'India', country, role, level,
-        lastFetchedAt: now,
-        ...(succeeded ? { lastSuccessfulAt: now } : {}),
-        resultCount: listings.length,
-        sourceCounts,
-        sourceErrors,
-      },
-    },
-    { upsert: true, new: true, runValidators: true }
-  ).lean();
+  const cacheData = {
+    city: city || 'India',
+    country: country || '',
+    role: role || '',
+    level: level || '',
+    lastFetchedAt: now,
+    ...(succeeded ? { lastSuccessfulAt: now } : {}),
+    resultCount: listings.length,
+    sourceCounts,
+    sourceErrors,
+  };
+  const key = buildSearchCacheKey({ city, country, role, level });
+  const cache = await prisma.opportunitySearchCache.upsert({
+    where: { key },
+    update: cacheData,
+    create: { key, ...cacheData },
+  });
 
   return { cache, fetched: allListings.length, upsertedCount, sourceCounts, sourceErrors };
 };
@@ -179,13 +190,13 @@ export const ensureCitySearchFresh = async ({ city = '', country = '', role = ''
   const normalizedRole = String(role || '').trim().slice(0, 160);
   const normalizedLevel = String(level || '').trim().toLowerCase();
   const key = buildSearchCacheKey({ city: normalizedCity, country: normalizedCountry, role: normalizedRole, level: normalizedLevel });
-  let cache = await OpportunitySearchCache.findOne({ key }).lean();
+  let cache = await prisma.opportunitySearchCache.findUnique({ where: { key } });
   if (!force && cache?.lastFetchedAt && now.getTime() - new Date(cache.lastFetchedAt).getTime() < SEARCH_CACHE_TTL_MS) {
     return { cache, cached: true, key };
   }
 
   const locked = await runWithSearchKeyLock(key, async () => {
-    const afterWait = await OpportunitySearchCache.findOne({ key }).lean();
+    const afterWait = await prisma.opportunitySearchCache.findUnique({ where: { key } });
     if (!force && afterWait?.lastFetchedAt && now.getTime() - new Date(afterWait.lastFetchedAt).getTime() < SEARCH_CACHE_TTL_MS) {
       return { cache: afterWait, fetched: 0, upsertedCount: 0, sourceCounts: afterWait.sourceCounts || {}, sourceErrors: afterWait.sourceErrors || [], cached: true };
     }

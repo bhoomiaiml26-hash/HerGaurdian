@@ -1,37 +1,32 @@
 import express from 'express';
 import protect from '../middleware/auth.js';
-import SupportCase from '../models/SupportCase.js';
+import prisma from '../lib/prisma.js';
 
 const router = express.Router();
 
-/**
- * GET /api/support-cases
- * List private cases for the authenticated user
- */
 router.get('/', protect, async (req, res, next) => {
   try {
     const { status, includeArchived = 'false' } = req.query;
-    const query = { user: req.user._id };
+    const where = { userId: req.user.id };
 
     if (includeArchived !== 'true') {
-      query.isArchived = { $ne: true };
+      where.isArchived = false;
     }
 
     if (status && status !== 'all') {
-      query.status = status;
+      where.status = status;
     }
 
-    const cases = await SupportCase.find(query).sort({ updatedAt: -1 }).lean();
+    const cases = await prisma.supportCase.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+    });
     res.json({ success: true, cases });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * POST /api/support-cases
- * Create a new private case
- */
 router.post('/', protect, async (req, res, next) => {
   try {
     const {
@@ -62,19 +57,21 @@ router.post('/', protect, async (req, res, next) => {
         }))
       : [];
 
-    const newCase = await SupportCase.create({
-      user: req.user._id,
-      title: title.trim().slice(0, 200),
-      category: (category || 'General Support').trim(),
-      jurisdiction: (jurisdiction || 'National / General').trim(),
-      description: (description || '').trim().slice(0, 10000),
-      status,
-      priority,
-      incidentDate: incidentDate || '',
-      targetResolutionDate: targetResolutionDate || '',
-      tasks: formattedTasks,
-      notes: Array.isArray(notes) ? notes : [],
-      savedResources: Array.isArray(savedResources) ? savedResources : [],
+    const newCase = await prisma.supportCase.create({
+      data: {
+        userId: req.user.id,
+        title: title.trim().slice(0, 200),
+        category: (category || 'General Support').trim(),
+        jurisdiction: (jurisdiction || 'National / General').trim(),
+        description: (description || '').trim().slice(0, 10000),
+        status,
+        priority,
+        incidentDate: incidentDate || '',
+        targetResolutionDate: targetResolutionDate || '',
+        tasks: formattedTasks,
+        notes: Array.isArray(notes) ? notes : [],
+        savedResources: Array.isArray(savedResources) ? savedResources : [],
+      },
     });
 
     res.status(201).json({ success: true, case: newCase });
@@ -83,16 +80,11 @@ router.post('/', protect, async (req, res, next) => {
   }
 });
 
-/**
- * GET /api/support-cases/:id
- * Retrieve a single case (strictly scoped to owner)
- */
 router.get('/:id', protect, async (req, res, next) => {
   try {
-    const supportCase = await SupportCase.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    }).lean();
+    const supportCase = await prisma.supportCase.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
 
     if (!supportCase) {
       return res.status(404).json({ success: false, message: 'Case not found or access denied' });
@@ -104,15 +96,10 @@ router.get('/:id', protect, async (req, res, next) => {
   }
 });
 
-/**
- * PUT /api/support-cases/:id
- * Update an existing case
- */
 router.put('/:id', protect, async (req, res, next) => {
   try {
-    const supportCase = await SupportCase.findOne({
-      _id: req.params.id,
-      user: req.user._id,
+    const supportCase = await prisma.supportCase.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
     });
 
     if (!supportCase) {
@@ -134,35 +121,35 @@ router.put('/:id', protect, async (req, res, next) => {
       isArchived,
     } = req.body;
 
-    if (title !== undefined) supportCase.title = title.trim().slice(0, 200);
-    if (category !== undefined) supportCase.category = category.trim();
-    if (jurisdiction !== undefined) supportCase.jurisdiction = jurisdiction.trim();
-    if (description !== undefined) supportCase.description = description.trim().slice(0, 10000);
-    if (status !== undefined) supportCase.status = status;
-    if (priority !== undefined) supportCase.priority = priority;
-    if (incidentDate !== undefined) supportCase.incidentDate = incidentDate;
-    if (targetResolutionDate !== undefined) supportCase.targetResolutionDate = targetResolutionDate;
-    if (tasks !== undefined) supportCase.tasks = tasks;
-    if (notes !== undefined) supportCase.notes = notes;
-    if (savedResources !== undefined) supportCase.savedResources = savedResources;
-    if (isArchived !== undefined) supportCase.isArchived = Boolean(isArchived);
+    const data = {};
+    if (title !== undefined) data.title = title.trim().slice(0, 200);
+    if (category !== undefined) data.category = category.trim();
+    if (jurisdiction !== undefined) data.jurisdiction = jurisdiction.trim();
+    if (description !== undefined) data.description = description.trim().slice(0, 10000);
+    if (status !== undefined) data.status = status;
+    if (priority !== undefined) data.priority = priority;
+    if (incidentDate !== undefined) data.incidentDate = incidentDate;
+    if (targetResolutionDate !== undefined) data.targetResolutionDate = targetResolutionDate;
+    if (tasks !== undefined) data.tasks = tasks;
+    if (notes !== undefined) data.notes = notes;
+    if (savedResources !== undefined) data.savedResources = savedResources;
+    if (isArchived !== undefined) data.isArchived = Boolean(isArchived);
 
-    await supportCase.save();
-    res.json({ success: true, case: supportCase });
+    const updated = await prisma.supportCase.update({
+      where: { id: supportCase.id },
+      data,
+    });
+
+    res.json({ success: true, case: updated });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * POST /api/support-cases/:id/tasks
- * Add a task to a case
- */
 router.post('/:id/tasks', protect, async (req, res, next) => {
   try {
-    const supportCase = await SupportCase.findOne({
-      _id: req.params.id,
-      user: req.user._id,
+    const supportCase = await prisma.supportCase.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
     });
 
     if (!supportCase) {
@@ -182,59 +169,60 @@ router.post('/:id/tasks', protect, async (req, res, next) => {
       priority,
     };
 
-    supportCase.tasks.push(newTask);
-    await supportCase.save();
+    const updated = await prisma.supportCase.update({
+      where: { id: supportCase.id },
+      data: { tasks: [...supportCase.tasks, newTask] },
+    });
 
-    res.status(201).json({ success: true, case: supportCase, task: newTask });
+    res.status(201).json({ success: true, case: updated, task: newTask });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * PUT /api/support-cases/:id/tasks/:taskId
- * Toggle or update task completion
- */
 router.put('/:id/tasks/:taskId', protect, async (req, res, next) => {
   try {
-    const supportCase = await SupportCase.findOne({
-      _id: req.params.id,
-      user: req.user._id,
+    const supportCase = await prisma.supportCase.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
     });
 
     if (!supportCase) {
       return res.status(404).json({ success: false, message: 'Case not found' });
     }
 
-    const task = supportCase.tasks.find(t => t.id === req.params.taskId);
+    const tasks = supportCase.tasks.map(t => {
+      if (t.id !== req.params.taskId) return t;
+      const updated = { ...t };
+      if (req.body.completed !== undefined) updated.completed = Boolean(req.body.completed);
+      if (req.body.title !== undefined) updated.title = req.body.title.trim();
+      if (req.body.dueDate !== undefined) updated.dueDate = req.body.dueDate;
+      if (req.body.priority !== undefined) updated.priority = req.body.priority;
+      return updated;
+    });
+
+    const task = tasks.find(t => t.id === req.params.taskId);
     if (!task) {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
-    if (req.body.completed !== undefined) task.completed = Boolean(req.body.completed);
-    if (req.body.title !== undefined) task.title = req.body.title.trim();
-    if (req.body.dueDate !== undefined) task.dueDate = req.body.dueDate;
-    if (req.body.priority !== undefined) task.priority = req.body.priority;
+    const updated = await prisma.supportCase.update({
+      where: { id: supportCase.id },
+      data: { tasks },
+    });
 
-    await supportCase.save();
-    res.json({ success: true, case: supportCase, task });
+    res.json({ success: true, case: updated, task });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * DELETE /api/support-cases/:id
- * Delete a case
- */
 router.delete('/:id', protect, async (req, res, next) => {
   try {
-    const result = await SupportCase.deleteOne({
-      _id: req.params.id,
-      user: req.user._id,
+    const result = await prisma.supportCase.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
     });
 
-    if (result.deletedCount === 0) {
+    if (result.count === 0) {
       return res.status(404).json({ success: false, message: 'Case not found or access denied' });
     }
 

@@ -1,17 +1,9 @@
 import express from 'express';
 import protect from '../middleware/auth.js';
-import WellnessCheckin from '../models/WellnessCheckin.js';
-import MenstrualLog from '../models/MenstrualLog.js';
-import SleepLog from '../models/SleepLog.js';
-import MovementLog from '../models/MovementLog.js';
-import WellnessJournal from '../models/WellnessJournal.js';
-import WellnessGoal from '../models/WellnessGoal.js';
-import WindDownRoutine from '../models/WindDownRoutine.js';
+import prisma from '../lib/prisma.js';
 import { explainInsightInPlainWords, reflectOnJournalEntry, isWellnessAIAvailable } from '../services/wellnessAI.js';
 
 const router = express.Router();
-
-// ── Validation helpers ───────────────────────────────────────────────────────
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -65,35 +57,33 @@ function badDate(res) {
   return res.status(400).json({ success: false, message: 'Date must be a valid YYYY-MM-DD date' });
 }
 
-// Helper: duration between two HH:mm times, correctly crossing midnight
 function calculateSleepMinutes(bedtime, wakeTime) {
   const [bH, bM] = bedtime.split(':').map(Number);
   const [wH, wM] = wakeTime.split(':').map(Number);
   let start = bH * 60 + bM;
   let end = wH * 60 + wM;
   if (end <= start) {
-    end += 24 * 60; // crossed midnight
+    end += 24 * 60;
   }
   return Math.max(0, end - start);
 }
 
-// ── 1. WELLNESS CHECK-INS ────────────────────────────────────────────────────
-
 router.get('/checkins', protect, async (req, res, next) => {
   try {
     const limit = parseLimit(req.query.limit, 30);
-    const filter = { user: req.user._id };
+    const where = { userId: req.user.id };
     if (req.query.from || req.query.to) {
-      filter.date = {};
-      if (isValidDate(req.query.from)) filter.date.$gte = req.query.from;
-      if (isValidDate(req.query.to)) filter.date.$lte = req.query.to;
-      if (Object.keys(filter.date).length === 0) delete filter.date;
+      where.date = {};
+      if (isValidDate(req.query.from)) where.date.gte = req.query.from;
+      if (isValidDate(req.query.to)) where.date.lte = req.query.to;
+      if (Object.keys(where.date).length === 0) delete where.date;
     }
 
-    const checkins = await WellnessCheckin.find(filter)
-      .sort({ date: -1 })
-      .limit(limit)
-      .lean();
+    const checkins = await prisma.wellnessCheckin.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      take: limit,
+    });
 
     const todayStr = new Date().toISOString().split('T')[0];
     const todayCheckin = checkins.find((c) => c.date === todayStr) || null;
@@ -117,20 +107,20 @@ router.post('/checkins', protect, async (req, res, next) => {
       : date;
     if (!isValidDate(targetDate)) return badDate(res);
 
-    const checkin = await WellnessCheckin.findOneAndUpdate(
-      { user: req.user._id, date: targetDate },
-      {
-        user: req.user._id,
-        date: targetDate,
-        mood: optionalOneOf(mood, ['great', 'good', 'neutral', 'low', 'stressed']),
-        energy: clampOptionalNumber(energy, 1, 5),
-        stress: clampOptionalNumber(stress, 1, 5),
-        sleepQuality: clampOptionalNumber(sleepQuality, 1, 5),
-        generalWellbeing: clampOptionalNumber(generalWellbeing, 1, 5),
-        notes: String(notes || '').trim().slice(0, 1000),
-      },
-      { upsert: true, new: true, runValidators: true }
-    );
+    const data = {
+      mood: optionalOneOf(mood, ['great', 'good', 'neutral', 'low', 'stressed']),
+      energy: clampOptionalNumber(energy, 1, 5),
+      stress: clampOptionalNumber(stress, 1, 5),
+      sleepQuality: clampOptionalNumber(sleepQuality, 1, 5),
+      generalWellbeing: clampOptionalNumber(generalWellbeing, 1, 5),
+      notes: String(notes || '').trim().slice(0, 1000),
+    };
+
+    const checkin = await prisma.wellnessCheckin.upsert({
+      where: { userId_date: { userId: req.user.id, date: targetDate } },
+      update: data,
+      create: { userId: req.user.id, date: targetDate, ...data },
+    });
 
     res.status(200).json({ success: true, checkin });
   } catch (err) {
@@ -140,28 +130,33 @@ router.post('/checkins', protect, async (req, res, next) => {
 
 router.put('/checkins/:id', protect, async (req, res, next) => {
   try {
-    const checkin = await WellnessCheckin.findOne({ _id: req.params.id, user: req.user._id });
+    const checkin = await prisma.wellnessCheckin.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!checkin) {
       return res.status(404).json({ success: false, message: 'Check-in not found' });
     }
 
     const { date, mood, energy, stress, sleepQuality, generalWellbeing, notes } = req.body;
+    const data = {};
     if (date !== undefined) {
       if (!isValidDate(date)) return badDate(res);
-      checkin.date = date;
+      data.date = date;
     }
-    if (mood !== undefined) checkin.mood = optionalOneOf(mood, ['great', 'good', 'neutral', 'low', 'stressed']);
-    if (energy !== undefined) checkin.energy = clampOptionalNumber(energy, 1, 5);
-    if (stress !== undefined) checkin.stress = clampOptionalNumber(stress, 1, 5);
-    if (sleepQuality !== undefined) checkin.sleepQuality = clampOptionalNumber(sleepQuality, 1, 5);
-    if (generalWellbeing !== undefined) checkin.generalWellbeing = clampOptionalNumber(generalWellbeing, 1, 5);
-    if (notes !== undefined) checkin.notes = String(notes).trim().slice(0, 1000);
+    if (mood !== undefined) data.mood = optionalOneOf(mood, ['great', 'good', 'neutral', 'low', 'stressed']);
+    if (energy !== undefined) data.energy = clampOptionalNumber(energy, 1, 5);
+    if (stress !== undefined) data.stress = clampOptionalNumber(stress, 1, 5);
+    if (sleepQuality !== undefined) data.sleepQuality = clampOptionalNumber(sleepQuality, 1, 5);
+    if (generalWellbeing !== undefined) data.generalWellbeing = clampOptionalNumber(generalWellbeing, 1, 5);
+    if (notes !== undefined) data.notes = String(notes).trim().slice(0, 1000);
 
-    await checkin.save();
-    res.json({ success: true, checkin });
+    const updated = await prisma.wellnessCheckin.update({
+      where: { id: checkin.id },
+      data,
+    });
+    res.json({ success: true, checkin: updated });
   } catch (err) {
-    // e.g. duplicate {user, date} when moving a check-in onto an existing date
-    if (err.code === 11000) {
+    if (err.code === 'P2002') {
       return res.status(409).json({ success: false, message: 'A check-in already exists for that date' });
     }
     next(err);
@@ -170,8 +165,10 @@ router.put('/checkins/:id', protect, async (req, res, next) => {
 
 router.delete('/checkins/:id', protect, async (req, res, next) => {
   try {
-    const result = await WellnessCheckin.deleteOne({ _id: req.params.id, user: req.user._id });
-    if (result.deletedCount === 0) {
+    const result = await prisma.wellnessCheckin.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) {
       return res.status(404).json({ success: false, message: 'Check-in not found' });
     }
     res.json({ success: true, message: 'Check-in entry deleted' });
@@ -179,8 +176,6 @@ router.delete('/checkins/:id', protect, async (req, res, next) => {
     next(err);
   }
 });
-
-// ── 2. MENSTRUAL WELLNESS LOGS ──────────────────────────────────────────────
 
 const FLOWS = ['spotting', 'light', 'medium', 'heavy', ''];
 
@@ -196,11 +191,11 @@ function validateCycleDates(startDate, endDate, res) {
 router.get('/menstrual', protect, async (req, res, next) => {
   try {
     const limit = parseLimit(req.query.limit, 60);
-    const logs = await MenstrualLog.find({ user: req.user._id })
-      .sort({ startDate: -1 })
-      .limit(limit)
-      .lean();
-
+    const logs = await prisma.menstrualLog.findMany({
+      where: { userId: req.user.id },
+      orderBy: { startDate: 'desc' },
+      take: limit,
+    });
     res.json({ success: true, logs });
   } catch (err) {
     next(err);
@@ -216,17 +211,19 @@ router.post('/menstrual', protect, async (req, res, next) => {
     const invalid = validateCycleDates(startDate, endDate, res);
     if (invalid) return invalid;
 
-    const log = await MenstrualLog.create({
-      user: req.user._id,
-      startDate,
-      endDate: endDate || '',
-      flow: oneOf(flow, FLOWS, 'medium'),
-      painLevel: clampNumber(painLevel, 1, 5, 2),
-      symptoms: Array.isArray(symptoms)
-        ? symptoms.filter((s) => typeof s === 'string').slice(0, 20).map((s) => s.trim().slice(0, 60))
-        : [],
-      mood: String(mood || '').trim().slice(0, 60),
-      notes: String(notes || '').trim().slice(0, 1000),
+    const log = await prisma.menstrualLog.create({
+      data: {
+        userId: req.user.id,
+        startDate,
+        endDate: endDate || '',
+        flow: oneOf(flow, FLOWS, 'medium'),
+        painLevel: clampNumber(painLevel, 1, 5, 2),
+        symptoms: Array.isArray(symptoms)
+          ? symptoms.filter((s) => typeof s === 'string').slice(0, 20).map((s) => s.trim().slice(0, 60))
+          : [],
+        mood: String(mood || '').trim().slice(0, 60),
+        notes: String(notes || '').trim().slice(0, 1000),
+      },
     });
 
     res.status(201).json({ success: true, log });
@@ -238,7 +235,9 @@ router.post('/menstrual', protect, async (req, res, next) => {
 router.put('/menstrual/:id', protect, async (req, res, next) => {
   try {
     const { startDate, endDate, flow, painLevel, symptoms, mood, notes } = req.body;
-    const log = await MenstrualLog.findOne({ _id: req.params.id, user: req.user._id });
+    const log = await prisma.menstrualLog.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!log) {
       return res.status(404).json({ success: false, message: 'Log entry not found' });
     }
@@ -248,20 +247,25 @@ router.put('/menstrual/:id', protect, async (req, res, next) => {
     const invalid = validateCycleDates(nextStart, nextEnd, res);
     if (invalid) return invalid;
 
-    log.startDate = nextStart;
-    log.endDate = nextEnd;
-    if (flow !== undefined) log.flow = oneOf(flow, FLOWS, 'medium');
-    if (painLevel !== undefined) log.painLevel = clampNumber(painLevel, 1, 5, 2);
+    const data = {
+      startDate: nextStart,
+      endDate: nextEnd,
+    };
+    if (flow !== undefined) data.flow = oneOf(flow, FLOWS, 'medium');
+    if (painLevel !== undefined) data.painLevel = clampNumber(painLevel, 1, 5, 2);
     if (symptoms !== undefined) {
-      log.symptoms = Array.isArray(symptoms)
+      data.symptoms = Array.isArray(symptoms)
         ? symptoms.filter((s) => typeof s === 'string').slice(0, 20).map((s) => s.trim().slice(0, 60))
         : [];
     }
-    if (mood !== undefined) log.mood = String(mood).trim().slice(0, 60);
-    if (notes !== undefined) log.notes = String(notes).trim().slice(0, 1000);
+    if (mood !== undefined) data.mood = String(mood).trim().slice(0, 60);
+    if (notes !== undefined) data.notes = String(notes).trim().slice(0, 1000);
 
-    await log.save();
-    res.json({ success: true, log });
+    const updated = await prisma.menstrualLog.update({
+      where: { id: log.id },
+      data,
+    });
+    res.json({ success: true, log: updated });
   } catch (err) {
     next(err);
   }
@@ -269,8 +273,10 @@ router.put('/menstrual/:id', protect, async (req, res, next) => {
 
 router.delete('/menstrual/:id', protect, async (req, res, next) => {
   try {
-    const result = await MenstrualLog.deleteOne({ _id: req.params.id, user: req.user._id });
-    if (result.deletedCount === 0) {
+    const result = await prisma.menstrualLog.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) {
       return res.status(404).json({ success: false, message: 'Log entry not found' });
     }
     res.json({ success: true, message: 'Cycle entry deleted' });
@@ -279,16 +285,14 @@ router.delete('/menstrual/:id', protect, async (req, res, next) => {
   }
 });
 
-// ── 3. SLEEP LOGS ────────────────────────────────────────────────────────────
-
 router.get('/sleep', protect, async (req, res, next) => {
   try {
     const limit = parseLimit(req.query.limit, 30);
-    const logs = await SleepLog.find({ user: req.user._id })
-      .sort({ date: -1 })
-      .limit(limit)
-      .lean();
-
+    const logs = await prisma.sleepLog.findMany({
+      where: { userId: req.user.id },
+      orderBy: { date: 'desc' },
+      take: limit,
+    });
     res.json({ success: true, logs });
   } catch (err) {
     next(err);
@@ -309,22 +313,22 @@ router.post('/sleep', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Bedtime and wake time cannot be the same' });
     }
 
-    const log = await SleepLog.findOneAndUpdate(
-      { user: req.user._id, date: targetDate },
-      {
-        user: req.user._id,
-        date: targetDate,
-        bedtime,
-        wakeTime,
-        durationMinutes,
-        quality: clampNumber(quality, 1, 5, 3),
-        windDownActivities: Array.isArray(windDownActivities)
-          ? windDownActivities.filter((s) => typeof s === 'string').slice(0, 12).map((s) => s.trim().slice(0, 60))
-          : [],
-        notes: String(notes || '').trim().slice(0, 1000),
-      },
-      { upsert: true, new: true, runValidators: true }
-    );
+    const data = {
+      bedtime,
+      wakeTime,
+      durationMinutes,
+      quality: clampNumber(quality, 1, 5, 3),
+      windDownActivities: Array.isArray(windDownActivities)
+        ? windDownActivities.filter((s) => typeof s === 'string').slice(0, 12).map((s) => s.trim().slice(0, 60))
+        : [],
+      notes: String(notes || '').trim().slice(0, 1000),
+    };
+
+    const log = await prisma.sleepLog.upsert({
+      where: { userId_date: { userId: req.user.id, date: targetDate } },
+      update: data,
+      create: { userId: req.user.id, date: targetDate, ...data },
+    });
 
     res.status(200).json({ success: true, log });
   } catch (err) {
@@ -334,8 +338,10 @@ router.post('/sleep', protect, async (req, res, next) => {
 
 router.delete('/sleep/:id', protect, async (req, res, next) => {
   try {
-    const result = await SleepLog.deleteOne({ _id: req.params.id, user: req.user._id });
-    if (result.deletedCount === 0) {
+    const result = await prisma.sleepLog.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) {
       return res.status(404).json({ success: false, message: 'Sleep log not found' });
     }
     res.json({ success: true, message: 'Sleep log deleted' });
@@ -344,18 +350,16 @@ router.delete('/sleep/:id', protect, async (req, res, next) => {
   }
 });
 
-// ── 4. MOVEMENT LOGS ─────────────────────────────────────────────────────────
-
 const MOVEMENT_CATEGORIES = ['stretching', 'walking', 'mobility', 'yoga', 'desk-break', 'other'];
 
 router.get('/movement', protect, async (req, res, next) => {
   try {
     const limit = parseLimit(req.query.limit, 40);
-    const logs = await MovementLog.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
-
+    const logs = await prisma.movementLog.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
     res.json({ success: true, logs });
   } catch (err) {
     next(err);
@@ -371,15 +375,17 @@ router.post('/movement', protect, async (req, res, next) => {
     const targetDate = date || new Date().toISOString().split('T')[0];
     if (!isValidDate(targetDate)) return badDate(res);
 
-    const log = await MovementLog.create({
-      user: req.user._id,
-      title: String(title).trim().slice(0, 150),
-      category: oneOf(category, MOVEMENT_CATEGORIES, 'stretching'),
-      durationMinutes: clampNumber(durationMinutes, 1, 360, 10),
-      effort: oneOf(effort, ['gentle', 'moderate', 'invigorating', ''], 'gentle'),
-      completed: true,
-      date: targetDate,
-      notes: String(notes || '').trim().slice(0, 1000),
+    const log = await prisma.movementLog.create({
+      data: {
+        userId: req.user.id,
+        title: String(title).trim().slice(0, 150),
+        category: oneOf(category, MOVEMENT_CATEGORIES, 'stretching'),
+        durationMinutes: clampNumber(durationMinutes, 1, 360, 10),
+        effort: oneOf(effort, ['gentle', 'moderate', 'invigorating', ''], 'gentle'),
+        completed: true,
+        date: targetDate,
+        notes: String(notes || '').trim().slice(0, 1000),
+      },
     });
 
     res.status(201).json({ success: true, log });
@@ -390,8 +396,10 @@ router.post('/movement', protect, async (req, res, next) => {
 
 router.delete('/movement/:id', protect, async (req, res, next) => {
   try {
-    const result = await MovementLog.deleteOne({ _id: req.params.id, user: req.user._id });
-    if (result.deletedCount === 0) {
+    const result = await prisma.movementLog.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) {
       return res.status(404).json({ success: false, message: 'Movement log not found' });
     }
     res.json({ success: true, message: 'Movement entry deleted' });
@@ -400,16 +408,14 @@ router.delete('/movement/:id', protect, async (req, res, next) => {
   }
 });
 
-// ── 5. WELLNESS JOURNAL / REFLECTIONS (private to the user) ─────────────────
-
 router.get('/journal', protect, async (req, res, next) => {
   try {
     const limit = parseLimit(req.query.limit, 30);
-    const entries = await WellnessJournal.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
-
+    const entries = await prisma.wellnessJournal.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
     res.json({ success: true, entries });
   } catch (err) {
     next(err);
@@ -423,12 +429,14 @@ router.post('/journal', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Journal content is required' });
     }
 
-    const entry = await WellnessJournal.create({
-      user: req.user._id,
-      prompt: String(prompt || '').trim().slice(0, 300),
-      content: String(content).trim().slice(0, 5000),
-      moodTag: String(moodTag || '').trim().slice(0, 60),
-      date: new Date().toISOString().split('T')[0],
+    const entry = await prisma.wellnessJournal.create({
+      data: {
+        userId: req.user.id,
+        prompt: String(prompt || '').trim().slice(0, 300),
+        content: String(content).trim().slice(0, 5000),
+        moodTag: String(moodTag || '').trim().slice(0, 60),
+        date: new Date().toISOString().split('T')[0],
+      },
     });
 
     res.status(201).json({ success: true, entry });
@@ -439,23 +447,29 @@ router.post('/journal', protect, async (req, res, next) => {
 
 router.put('/journal/:id', protect, async (req, res, next) => {
   try {
-    const entry = await WellnessJournal.findOne({ _id: req.params.id, user: req.user._id });
+    const entry = await prisma.wellnessJournal.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!entry) {
       return res.status(404).json({ success: false, message: 'Journal entry not found' });
     }
 
     const { prompt, content, moodTag } = req.body;
+    const data = {};
     if (content !== undefined) {
       if (!String(content).trim()) {
         return res.status(400).json({ success: false, message: 'Journal content cannot be empty' });
       }
-      entry.content = String(content).trim().slice(0, 5000);
+      data.content = String(content).trim().slice(0, 5000);
     }
-    if (prompt !== undefined) entry.prompt = String(prompt).trim().slice(0, 300);
-    if (moodTag !== undefined) entry.moodTag = String(moodTag).trim().slice(0, 60);
+    if (prompt !== undefined) data.prompt = String(prompt).trim().slice(0, 300);
+    if (moodTag !== undefined) data.moodTag = String(moodTag).trim().slice(0, 60);
 
-    await entry.save();
-    res.json({ success: true, entry });
+    const updated = await prisma.wellnessJournal.update({
+      where: { id: entry.id },
+      data,
+    });
+    res.json({ success: true, entry: updated });
   } catch (err) {
     next(err);
   }
@@ -463,8 +477,10 @@ router.put('/journal/:id', protect, async (req, res, next) => {
 
 router.delete('/journal/:id', protect, async (req, res, next) => {
   try {
-    const result = await WellnessJournal.deleteOne({ _id: req.params.id, user: req.user._id });
-    if (result.deletedCount === 0) {
+    const result = await prisma.wellnessJournal.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) {
       return res.status(404).json({ success: false, message: 'Journal entry not found' });
     }
     res.json({ success: true, message: 'Journal entry deleted' });
@@ -473,18 +489,16 @@ router.delete('/journal/:id', protect, async (req, res, next) => {
   }
 });
 
-// ── 6. WELLNESS GOALS & HABITS ──────────────────────────────────────────────
-
 const GOAL_CATEGORIES = ['mindfulness', 'movement', 'sleep', 'checkin', 'hydration', 'cycle', 'other'];
 const GOAL_FREQUENCIES = ['daily', '3x_week', '5x_week', 'weekly'];
 const GOAL_STATUSES = ['active', 'paused', 'completed'];
 
 router.get('/goals', protect, async (req, res, next) => {
   try {
-    const goals = await WellnessGoal.find({ user: req.user._id })
-      .sort({ createdAt: -1 })
-      .lean();
-
+    const goals = await prisma.wellnessGoal.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
     res.json({ success: true, goals });
   } catch (err) {
     next(err);
@@ -498,15 +512,17 @@ router.post('/goals', protect, async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Goal title is required' });
     }
 
-    const goal = await WellnessGoal.create({
-      user: req.user._id,
-      title: String(title).trim().slice(0, 200),
-      category: oneOf(category, GOAL_CATEGORIES, 'mindfulness'),
-      frequency: oneOf(frequency, GOAL_FREQUENCIES, 'daily'),
-      targetCount: clampNumber(targetCount, 1, 365, 1),
-      currentCount: 0,
-      status: 'active',
-      notes: String(notes || '').trim().slice(0, 500),
+    const goal = await prisma.wellnessGoal.create({
+      data: {
+        userId: req.user.id,
+        title: String(title).trim().slice(0, 200),
+        category: oneOf(category, GOAL_CATEGORIES, 'mindfulness'),
+        frequency: oneOf(frequency, GOAL_FREQUENCIES, 'daily'),
+        targetCount: clampNumber(targetCount, 1, 365, 1),
+        currentCount: 0,
+        status: 'active',
+        notes: String(notes || '').trim().slice(0, 500),
+      },
     });
 
     res.status(201).json({ success: true, goal });
@@ -517,18 +533,25 @@ router.post('/goals', protect, async (req, res, next) => {
 
 router.patch('/goals/:id/increment', protect, async (req, res, next) => {
   try {
-    const goal = await WellnessGoal.findOne({ _id: req.params.id, user: req.user._id });
+    const goal = await prisma.wellnessGoal.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!goal) {
       return res.status(404).json({ success: false, message: 'Goal not found' });
     }
 
-    goal.currentCount = (goal.currentCount || 0) + 1;
-    if (goal.currentCount >= goal.targetCount) {
-      goal.status = 'completed';
+    const currentCount = (goal.currentCount || 0) + 1;
+    const data = { currentCount };
+    if (currentCount >= goal.targetCount) {
+      data.status = 'completed';
     }
-    await goal.save();
 
-    res.json({ success: true, goal });
+    const updated = await prisma.wellnessGoal.update({
+      where: { id: goal.id },
+      data,
+    });
+
+    res.json({ success: true, goal: updated });
   } catch (err) {
     next(err);
   }
@@ -536,22 +559,28 @@ router.patch('/goals/:id/increment', protect, async (req, res, next) => {
 
 router.put('/goals/:id', protect, async (req, res, next) => {
   try {
-    const { title, category, frequency, targetCount, currentCount, status, notes } = req.body;
-    const goal = await WellnessGoal.findOne({ _id: req.params.id, user: req.user._id });
+    const goal = await prisma.wellnessGoal.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!goal) {
       return res.status(404).json({ success: false, message: 'Goal not found' });
     }
 
-    if (title !== undefined) goal.title = String(title).trim().slice(0, 200);
-    if (category !== undefined) goal.category = oneOf(category, GOAL_CATEGORIES, goal.category);
-    if (frequency !== undefined) goal.frequency = oneOf(frequency, GOAL_FREQUENCIES, goal.frequency);
-    if (targetCount !== undefined) goal.targetCount = clampNumber(targetCount, 1, 365, goal.targetCount);
-    if (currentCount !== undefined) goal.currentCount = clampNumber(currentCount, 0, 365, goal.currentCount);
-    if (status !== undefined) goal.status = oneOf(status, GOAL_STATUSES, goal.status);
-    if (notes !== undefined) goal.notes = String(notes).trim().slice(0, 500);
+    const { title, category, frequency, targetCount, currentCount, status, notes } = req.body;
+    const data = {};
+    if (title !== undefined) data.title = String(title).trim().slice(0, 200);
+    if (category !== undefined) data.category = oneOf(category, GOAL_CATEGORIES, goal.category);
+    if (frequency !== undefined) data.frequency = oneOf(frequency, GOAL_FREQUENCIES, goal.frequency);
+    if (targetCount !== undefined) data.targetCount = clampNumber(targetCount, 1, 365, goal.targetCount);
+    if (currentCount !== undefined) data.currentCount = clampNumber(currentCount, 0, 365, goal.currentCount);
+    if (status !== undefined) data.status = oneOf(status, GOAL_STATUSES, goal.status);
+    if (notes !== undefined) data.notes = String(notes).trim().slice(0, 500);
 
-    await goal.save();
-    res.json({ success: true, goal });
+    const updated = await prisma.wellnessGoal.update({
+      where: { id: goal.id },
+      data,
+    });
+    res.json({ success: true, goal: updated });
   } catch (err) {
     next(err);
   }
@@ -559,8 +588,10 @@ router.put('/goals/:id', protect, async (req, res, next) => {
 
 router.delete('/goals/:id', protect, async (req, res, next) => {
   try {
-    const result = await WellnessGoal.deleteOne({ _id: req.params.id, user: req.user._id });
-    if (result.deletedCount === 0) {
+    const result = await prisma.wellnessGoal.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) {
       return res.status(404).json({ success: false, message: 'Goal not found' });
     }
     res.json({ success: true, message: 'Goal deleted' });
@@ -569,11 +600,11 @@ router.delete('/goals/:id', protect, async (req, res, next) => {
   }
 });
 
-// ── 7. WIND-DOWN ROUTINE (evening routine builder) ──────────────────────────
-
 router.get('/winddown', protect, async (req, res, next) => {
   try {
-    const routine = await WindDownRoutine.findOne({ user: req.user._id }).lean();
+    const routine = await prisma.windDownRoutine.findUnique({
+      where: { userId: req.user.id },
+    });
     res.json({ success: true, routine: routine || { activities: [], remindersEnabled: false } });
   } catch (err) {
     next(err);
@@ -599,24 +630,21 @@ router.put('/winddown', protect, async (req, res, next) => {
       }
     }
 
-    const routine = await WindDownRoutine.findOneAndUpdate(
-      { user: req.user._id },
-      {
-        user: req.user._id,
-        ...(name !== undefined ? { name: String(name).trim().slice(0, 120) || 'My wind-down routine' } : {}),
-        activities: cleaned,
-        ...(remindersEnabled !== undefined ? { remindersEnabled: Boolean(remindersEnabled) } : {}),
-      },
-      { upsert: true, new: true, runValidators: true }
-    );
+    const data = { activities: cleaned };
+    if (name !== undefined) data.name = String(name).trim().slice(0, 120) || 'My wind-down routine';
+    if (remindersEnabled !== undefined) data.remindersEnabled = Boolean(remindersEnabled);
+
+    const routine = await prisma.windDownRoutine.upsert({
+      where: { userId: req.user.id },
+      update: data,
+      create: { userId: req.user.id, ...data },
+    });
 
     res.json({ success: true, routine });
   } catch (err) {
     next(err);
   }
 });
-
-// ── 8. PERSONAL PATTERN INSIGHTS (deterministic, explainable) ────────────────
 
 const MOOD_SCORE = { great: 5, good: 4, neutral: 3, low: 2, stressed: 1 };
 const MOOD_LABEL = { great: 'great', good: 'good', neutral: 'neutral', low: 'low', stressed: 'stressed' };
@@ -628,20 +656,13 @@ function insufficient(id, title, reason, need) {
   return { id, title, reason, need };
 }
 
-/**
- * Builds insights ONLY from the records passed in. Every insight names its
- * period and links the supporting records; patterns without enough data are
- * returned in `insufficient` instead of being guessed at.
- */
 export function buildWellnessInsights({ checkins, sleepLogs, movementLogs, menstrualLogs }) {
   const insights = [];
   const gaps = [];
 
-  // Dates in ascending order for period labels
   const dateRange = (dates) => (dates.length ? { from: dates[dates.length - 1], to: dates[0] } : null);
   const sortedDates = (items, field = 'date') => items.map((i) => i[field]).filter(Boolean).sort();
 
-  // 1. Sleep quality & next-day energy ------------------------------------
   {
     const checkinByDate = new Map(checkins.map((c) => [c.date, c]));
     const pairs = sleepLogs
@@ -700,7 +721,6 @@ export function buildWellnessInsights({ checkins, sleepLogs, movementLogs, menst
     }
   }
 
-  // 2. Recorded stress & mood ------------------------------------------------
   {
     if (checkins.length < 5) {
       gaps.push(insufficient(
@@ -747,7 +767,6 @@ export function buildWellnessInsights({ checkins, sleepLogs, movementLogs, menst
     }
   }
 
-  // 3. Movement & self-reported wellbeing -----------------------------------
   {
     const movementDates = new Set(movementLogs.map((m) => m.date));
     const activeDays = checkins.filter((c) => movementDates.has(c.date));
@@ -789,7 +808,6 @@ export function buildWellnessInsights({ checkins, sleepLogs, movementLogs, menst
     }
   }
 
-  // 4. Repeated menstrual symptoms across recorded cycles --------------------
   {
     if (menstrualLogs.length < 2) {
       gaps.push(insufficient(
@@ -840,7 +858,6 @@ export function buildWellnessInsights({ checkins, sleepLogs, movementLogs, menst
     }
   }
 
-  // 5. Mood & energy over time ------------------------------------------------
   {
     if (checkins.length < 8) {
       gaps.push(insufficient(
@@ -901,19 +918,18 @@ export function buildWellnessInsights({ checkins, sleepLogs, movementLogs, menst
 
 router.get('/insights', protect, async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const [checkins, sleepLogs, movementLogs, menstrualLogs, goals] = await Promise.all([
-      WellnessCheckin.find({ user: userId }).sort({ date: -1 }).limit(60).lean(),
-      SleepLog.find({ user: userId }).sort({ date: -1 }).limit(60).lean(),
-      MovementLog.find({ user: userId }).sort({ date: -1 }).limit(60).lean(),
-      MenstrualLog.find({ user: userId }).sort({ startDate: -1 }).limit(12).lean(),
-      WellnessGoal.find({ user: userId, status: 'active' }).lean(),
+      prisma.wellnessCheckin.findMany({ where: { userId }, orderBy: { date: 'desc' }, take: 60 }),
+      prisma.sleepLog.findMany({ where: { userId }, orderBy: { date: 'desc' }, take: 60 }),
+      prisma.movementLog.findMany({ where: { userId }, orderBy: { date: 'desc' }, take: 60 }),
+      prisma.menstrualLog.findMany({ where: { userId }, orderBy: { startDate: 'desc' }, take: 12 }),
+      prisma.wellnessGoal.findMany({ where: { userId, status: 'active' } }),
     ]);
 
     const { insights, gaps } = buildWellnessInsights({ checkins, sleepLogs, movementLogs, menstrualLogs });
 
-    // Small, optional, deterministic suggestions based on goals + record counts
     const suggestions = [];
     if (checkins.length === 0 && sleepLogs.length === 0 && movementLogs.length === 0) {
       suggestions.push('Start with a quick daily check-in — it takes under a minute.');
@@ -951,8 +967,6 @@ router.get('/insights', protect, async (req, res, next) => {
     next(err);
   }
 });
-
-// ── 9. OPTIONAL AI ASSISTANCE (explicit consent, minimum data) ───────────────
 
 router.post('/ai/explain', protect, async (req, res) => {
   try {
@@ -994,8 +1008,9 @@ router.post('/ai/reflect', protect, async (req, res) => {
       return res.status(503).json({ success: false, message: 'AI is not available right now', fallback: true });
     }
 
-    // Server-side fetch scoped to the user: the client never sends entry text.
-    const entry = await WellnessJournal.findOne({ _id: entryId, user: req.user._id }).lean();
+    const entry = await prisma.wellnessJournal.findFirst({
+      where: { id: entryId, userId: req.user.id },
+    });
     if (!entry) {
       return res.status(404).json({ success: false, message: 'Journal entry not found' });
     }

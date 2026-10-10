@@ -1,4 +1,4 @@
-import Opportunity from '../../models/Opportunity.js';
+import prisma from '../../lib/prisma.js';
 import { fetchAdzuna } from './adzuna.js';
 import { fetchJooble } from './jooble.js';
 import { fetchRemotive } from './remotive.js';
@@ -35,8 +35,9 @@ export const dedupeOpportunities = (listings) => {
 
 export const ingestOpportunities = async ({ providers = PROVIDERS, now = new Date() } = {}) => {
   const remotiveCooldownStart = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-  const remotiveCached = providers.some((provider) => provider.source === 'Remotive')
-    && await Opportunity.exists({ source: 'Remotive', fetchedAt: { $gt: remotiveCooldownStart } });
+  const remotiveExisting = providers.some((provider) => provider.source === 'Remotive')
+    && await prisma.opportunity.findFirst({ where: { source: 'Remotive', fetchedAt: { gt: remotiveCooldownStart } } });
+  const remotiveCached = Boolean(remotiveExisting);
   const settled = await Promise.allSettled(providers.map((provider) => (
     provider.source === 'Remotive' && remotiveCached
       ? Promise.resolve({ source: 'Remotive', listings: [], skipped: true, cached: true })
@@ -60,10 +61,12 @@ export const ingestOpportunities = async ({ providers = PROVIDERS, now = new Dat
   });
 
   const listings = dedupeOpportunities(allListings);
-  const existing = await Opportunity.find({ expiresAt: { $gt: now } })
-    .select('_id url title company city')
-    .sort({ postedAt: -1 })
-    .lean();
+  const existing = await prisma.opportunity.findMany({
+    where: { expiresAt: { gt: now } },
+    select: { id: true, url: true, title: true, company: true, city: true },
+    orderBy: { postedAt: 'desc' },
+    take: 10000,
+  });
   const byUrl = new Map(existing.map((item) => [item.url.toLowerCase().replace(/\/$/, ''), item]));
   const byIdentity = new Map();
   existing.forEach((item) => {
@@ -71,19 +74,29 @@ export const ingestOpportunities = async ({ providers = PROVIDERS, now = new Dat
     if (!byIdentity.has(key)) byIdentity.set(key, item);
   });
 
-  const writes = listings.map((listing) => {
-    const key = listing.url.toLowerCase().replace(/\/$/, '');
-    const urlMatch = byUrl.get(key);
-    const identityMatch = byIdentity.get(identityKey(listing));
-    if (urlMatch) {
-      return { updateOne: { filter: { _id: urlMatch._id }, update: { $set: listing } } };
-    }
-    if (identityMatch) return null;
-    return { updateOne: { filter: { url: listing.url }, update: { $set: listing }, upsert: true } };
-  }).filter(Boolean);
+  const operations = listings
+    .map((listing) => {
+      const key = listing.url.toLowerCase().replace(/\/$/, '');
+      const urlMatch = byUrl.get(key);
+      const identityMatch = byIdentity.get(identityKey(listing));
+      const data = { ...listing };
+      delete data.id;
+      if (urlMatch) {
+        return prisma.opportunity.update({ where: { id: urlMatch.id }, data });
+      }
+      if (identityMatch) return null;
+      return prisma.opportunity.upsert({
+        where: { url: listing.url },
+        update: data,
+        create: data,
+      });
+    })
+    .filter(Boolean);
 
-  if (writes.length) await Opportunity.bulkWrite(writes, { ordered: false });
-  const expiredResult = await Opportunity.deleteMany({ expiresAt: { $lte: now } });
+  if (operations.length) {
+    await prisma.$transaction(operations);
+  }
+  const expiredResult = await prisma.opportunity.deleteMany({ where: { expiresAt: { lte: now } } });
   const indiaCount = listings.filter((listing) => listing.region === 'india').length;
   const globalCount = listings.length - indiaCount;
   const failedSources = Object.values(sourceCounts).filter((source) => source.failed).length;
@@ -95,7 +108,7 @@ export const ingestOpportunities = async ({ providers = PROVIDERS, now = new Dat
     deduplicated: listings.length,
     india: indiaCount,
     global: globalCount,
-    expiredRemoved: expiredResult.deletedCount,
+    expiredRemoved: expiredResult.count,
   }));
 
   return {
@@ -104,7 +117,7 @@ export const ingestOpportunities = async ({ providers = PROVIDERS, now = new Dat
     deduplicated: listings.length,
     india: indiaCount,
     global: globalCount,
-    expiredRemoved: expiredResult.deletedCount,
+    expiredRemoved: expiredResult.count,
     lastRefreshedAt: successfulSources > 0 ? now : null,
     failedSources,
   };

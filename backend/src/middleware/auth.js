@@ -1,5 +1,11 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import prisma from '../lib/prisma.js';
+
+const stripPassword = (user) => {
+  if (!user) return null;
+  const { password, ...rest } = user;
+  return rest;
+};
 
 const protect = async (req, res, next) => {
   try {
@@ -16,14 +22,16 @@ const protect = async (req, res, next) => {
     const secret = process.env.JWT_SECRET || 'herguardian-dev-secret';
     const decoded = jwt.verify(token, secret);
 
-    req.user = await User.findById(decoded.id).select('-password');
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
-    if (!req.user) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'User not found',
       });
     }
+
+    req.user = stripPassword(user);
 
     next();
   } catch (error) {

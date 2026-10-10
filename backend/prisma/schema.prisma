@@ -1,0 +1,484 @@
+// Prisma schema for HerGuardian AI backend
+// PostgreSQL datasource — replaces MongoDB/Mongoose
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String   @id @default(uuid())
+  name                String
+  age                 Int?
+  country             String?
+  profession          String?
+  email               String   @unique
+  password            String
+  resetPasswordToken  String?
+  resetPasswordExpire DateTime?
+  insightsCache       Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  chats                    Chat[]
+  communityPosts           CommunityPost[]
+  communityReplies         CommunityReply[]
+  communityReports         CommunityReport[]
+  contacts                 Contact[]
+  documentDrafts           DocumentDraft[]
+  favorites                Favorite[]
+  feedbacks                Feedback[]
+  footprintScans           FootprintScan[]
+  menstrualLogs            MenstrualLog[]
+  monthlyBudgets           MonthlyBudget[]
+  movementLogs             MovementLog[]
+  notifications            Notification[]
+  opportunityPreferences   OpportunityPreference[]
+  reminders                Reminder[]
+  savedOpportunities       SavedOpportunity[]
+  savingsGoals             SavingsGoal[]
+  sleepLogs                SleepLog[]
+  supportCases             SupportCase[]
+  transactions             Transaction[]
+  wellnessCheckins         WellnessCheckin[]
+  wellnessGoals            WellnessGoal[]
+  wellnessJournals         WellnessJournal[]
+  windDownRoutines         WindDownRoutine[]
+  careerRoadmaps           CareerRoadmap[]
+}
+
+model Chat {
+  id        String   @id @default(uuid())
+  userId    String
+  messages  Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CommunityPost {
+  id          String   @id @default(uuid())
+  userId      String
+  authorName  String
+  isAnonymous Boolean  @default(false)
+  topic       String   @default("general")
+  title       String
+  content     String
+  upvotes     Json     @default("[]")
+  replyCount  Int      @default(0)
+  isReported  Boolean  @default(false)
+  reportCount Int      @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies CommunityReply[]
+}
+
+model CommunityReply {
+  id          String   @id @default(uuid())
+  postId      String
+  userId      String
+  authorName  String
+  isAnonymous Boolean  @default(false)
+  content     String
+  upvotes     Json     @default("[]")
+  isReported  Boolean  @default(false)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CommunityReport {
+  id         String   @id @default(uuid())
+  reporterId String
+  targetType String
+  targetId   String
+  reason     String
+  details    String   @default("")
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+}
+
+model Contact {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
+  phone        String
+  relationship String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DocumentDraft {
+  id           String   @id @default(uuid())
+  userId       String
+  title        String
+  templateType String   @default("General Formal Complaint")
+  recipient    String   @default("")
+  subject      String   @default("")
+  content      String
+  caseId       String?
+  status       String   @default("draft")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Favorite {
+  id          String   @id @default(uuid())
+  userId      String
+  itemId      String
+  title       String
+  description String   @default("")
+  category    String   @default("General")
+  source      String   @default("general")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String
+  userName  String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FootprintScan {
+  id               String   @id @default(uuid())
+  userId           String
+  scanType         String
+  inputSummary     String   @default("")
+  findings         Json     @default("[]")
+  overallRiskLevel String   @default("low")
+  isInconclusive   Boolean  @default(false)
+  riskScore        Int      @default(0)
+  reasoning        String   @default("")
+  limitations      String   @default("")
+  findingCount     Int      @default(0)
+  resolvedCount    Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MenstrualLog {
+  id        String   @id @default(uuid())
+  userId    String
+  startDate String
+  endDate   String   @default("")
+  flow      String   @default("medium")
+  painLevel Int      @default(2)
+  symptoms  Json     @default("[]")
+  mood      String   @default("")
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MonthlyBudget {
+  id             String   @id @default(uuid())
+  userId         String
+  month          String
+  monthlyIncome  Float    @default(0)
+  monthlyBudget  Float    @default(0)
+  savingsGoal    Float    @default(0)
+  categoryBudgets Json    @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+}
+
+model MovementLog {
+  id              String   @id @default(uuid())
+  userId          String
+  title           String
+  category        String   @default("stretching")
+  durationMinutes Int
+  effort          String   @default("gentle")
+  completed       Boolean  @default(true)
+  date            String
+  notes           String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Opportunity {
+  id          String    @id @default(uuid())
+  title       String
+  company     String?
+  location    String?
+  city        String?
+  country     String?
+  isRemote    Boolean?
+  workMode    String    @default("unknown")
+  level       String    @default("unknown")
+  skills      Json      @default("[]")
+  description String    @default("")
+  url         String
+  source      String
+  region      String
+  postedAt    DateTime?
+  fetchedAt   DateTime
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([url])
+}
+
+model OpportunityPreference {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  roles         Json     @default("[]")
+  cities        Json     @default("[]")
+  workModes     Json     @default("[]")
+  levels        Json     @default("[]")
+  skills        Json     @default("[]")
+  includeGlobal Boolean  @default(true)
+  lastVisitAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OpportunitySearchCache {
+  id               String   @id @default(uuid())
+  key              String   @unique
+  city             String
+  country          String   @default("")
+  role             String   @default("")
+  level            String   @default("")
+  lastFetchedAt    DateTime
+  lastSuccessfulAt DateTime?
+  resultCount      Int      @default(0)
+  sourceCounts     Json     @default("{}")
+  sourceErrors     Json     @default("[]")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Reminder {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  category  String
+  time      String
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedOpportunity {
+  id             String   @id @default(uuid())
+  userId         String
+  opportunityId  String
+  title          String
+  organization   String   @default("")
+  type           String   @default("other")
+  deadline       DateTime?
+  applicationUrl String   @default("")
+  status         String   @default("interested")
+  notes          String   @default("")
+  documents      Json     @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, opportunityId])
+}
+
+model SavingsGoal {
+  id                 String    @id @default(uuid())
+  userId             String
+  name               String
+  targetAmount       Float
+  currentAmount      Float     @default(0)
+  monthlyContribution Float    @default(0)
+  targetDate         DateTime?
+  notes              String    @default("")
+  isCompleted        Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SleepLog {
+  id               String   @id @default(uuid())
+  userId           String
+  date             String
+  bedtime          String
+  wakeTime         String
+  durationMinutes  Int
+  quality          Int      @default(3)
+  windDownActivities Json   @default("[]")
+  notes            String   @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SupportCase {
+  id                   String   @id @default(uuid())
+  userId               String
+  title                String
+  category             String   @default("General Support")
+  jurisdiction         String   @default("National / General")
+  description          String   @default("")
+  status               String   @default("planning")
+  priority             String   @default("medium")
+  incidentDate         String   @default("")
+  targetResolutionDate String   @default("")
+  tasks                Json     @default("[]")
+  notes                Json     @default("[]")
+  savedResources       Json     @default("[]")
+  isArchived           Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  amount      Float
+  category    String
+  description String   @default("")
+  date        DateTime @default(now())
+  month       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WellnessCheckin {
+  id               String   @id @default(uuid())
+  userId           String
+  date             String
+  mood             String   @default("")
+  energy           Int?
+  stress           Int?
+  sleepQuality     Int?
+  generalWellbeing Int?
+  notes            String   @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model WellnessGoal {
+  id           String   @id @default(uuid())
+  userId       String
+  title        String
+  category     String   @default("mindfulness")
+  frequency    String   @default("daily")
+  targetCount  Int      @default(1)
+  currentCount Int      @default(0)
+  status       String   @default("active")
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WellnessJournal {
+  id        String   @id @default(uuid())
+  userId    String
+  prompt    String   @default("")
+  content   String
+  moodTag   String   @default("")
+  date      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WindDownRoutine {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  name             String   @default("My wind-down routine")
+  activities       Json     @default("[]")
+  remindersEnabled Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CareerRoadmap {
+  id                    String   @id @default(uuid())
+  userId                String
+  careerGoal            String
+  educationLevel        String   @default("")
+  currentSkills         String   @default("")
+  availableHoursPerWeek Int?
+  learningPace          String   @default("")
+  budget                String   @default("")
+  roadmapContent        String   @default("")
+  stages                Json     @default("[]")
+  notes                 String   @default("")
+  status                String   @default("active")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

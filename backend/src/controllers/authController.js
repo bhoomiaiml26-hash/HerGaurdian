@@ -1,13 +1,18 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
-import Notification from '../models/Notification.js';
+import prisma from '../lib/prisma.js';
 import { sendPasswordResetEmail } from '../services/emailService.js';
 
 const generateToken = (id) => {
   const secret = process.env.JWT_SECRET || 'herguardian-dev-secret';
   return jwt.sign({ id }, secret, { expiresIn: '7d' });
+};
+
+const stripPassword = (user) => {
+  if (!user) return null;
+  const { password, ...rest } = user;
+  return rest;
 };
 
 export const registerUser = async (req, res, next) => {
@@ -26,34 +31,41 @@ export const registerUser = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return res.status(409).json({ success: false, message: 'User already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      name,
-      age,
-      country,
-      profession,
-      email,
-      password: hashedPassword,
+    const user = await prisma.user.create({
+      data: {
+        name,
+        age: age ?? undefined,
+        country: country ?? undefined,
+        profession: profession ?? undefined,
+        email,
+        password: hashedPassword,
+      },
     });
 
-    // create welcome notification
     try {
-      await Notification.create({ user: user._id, title: 'Welcome to HerGuardian', message: `Hi ${user.name}, welcome to HerGuardian AI — your wellbeing companion.`, type: 'success' });
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Welcome to HerGuardian',
+          message: `Hi ${user.name}, welcome to HerGuardian AI — your wellbeing companion.`,
+          type: 'success',
+        },
+      });
     } catch (e) {
-      // don't block registration on notification error
       console.error('Notification error', e);
     }
 
     res.status(201).json({
       success: true,
-      token: generateToken(user._id),
-      user: user.toJSON(),
+      token: generateToken(user.id),
+      user: stripPassword(user),
     });
   } catch (error) {
     next(error);
@@ -68,7 +80,7 @@ export const loginUser = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
@@ -80,8 +92,8 @@ export const loginUser = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      token: generateToken(user._id),
-      user: user.toJSON(),
+      token: generateToken(user.id),
+      user: stripPassword(user),
     });
   } catch (error) {
     next(error);
@@ -96,7 +108,7 @@ export const forgotPassword = async (req, res, next) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user) {
       return res.status(200).json({
         success: true,
@@ -107,12 +119,16 @@ export const forgotPassword = async (req, res, next) => {
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-    user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
-    await user.save({ validateBeforeSave: false });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpire: new Date(Date.now() + 15 * 60 * 1000),
+      },
+    });
 
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
-    
+
     try {
       await sendPasswordResetEmail({
         to: user.email,
@@ -121,10 +137,10 @@ export const forgotPassword = async (req, res, next) => {
       });
     } catch (emailError) {
       console.error('Password reset email failed:', emailError);
-      // Rollback the reset token if email delivery failed
-      user.resetPasswordToken = null;
-      user.resetPasswordExpire = null;
-      await user.save({ validateBeforeSave: false });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetPasswordToken: null, resetPasswordExpire: null },
+      });
 
       return res.status(500).json({
         success: false,
@@ -163,9 +179,11 @@ export const resetPassword = async (req, res, next) => {
     }
 
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-    const user = await User.findOne({
-      resetPasswordToken: hashedToken,
-      resetPasswordExpire: { $gt: Date.now() },
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpire: { gt: new Date() },
+      },
     });
 
     if (!user) {
@@ -173,10 +191,14 @@ export const resetPassword = async (req, res, next) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    user.password = hashedPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpire = null;
-    await user.save();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpire: null,
+      },
+    });
 
     res.status(200).json({
       success: true,

@@ -1,31 +1,27 @@
 import express from 'express';
 import protect from '../middleware/auth.js';
-import Transaction from '../models/Transaction.js';
-import SavingsGoal from '../models/SavingsGoal.js';
-import MonthlyBudget from '../models/MonthlyBudget.js';
+import prisma from '../lib/prisma.js';
 import { computeFinancialAnalytics, getPreviousMonth } from '../services/financialAnalyticsService.js';
 
 const router = express.Router();
 
-// ── TRANSACTIONS ─────────────────────────────────────────────────────────────
-
-/**
- * GET /api/finance/transactions
- * List transactions for the authenticated user.
- * Query: month (YYYY-MM), type (income|expense), category, page, limit
- */
 router.get('/transactions', protect, async (req, res, next) => {
   try {
     const { month, type, category, page = 1, limit = 100 } = req.query;
-    const filter = { user: req.user._id };
-    if (month) filter.month = month;
-    if (type && ['income', 'expense'].includes(type)) filter.type = type;
-    if (category) filter.category = category;
+    const where = { userId: req.user.id };
+    if (month) where.month = month;
+    if (type && ['income', 'expense'].includes(type)) where.type = type;
+    if (category) where.category = category;
 
     const skip = (Number(page) - 1) * Number(limit);
     const [transactions, total] = await Promise.all([
-      Transaction.find(filter).sort({ date: -1 }).skip(skip).limit(Number(limit)).lean(),
-      Transaction.countDocuments(filter),
+      prisma.transaction.findMany({
+        where,
+        orderBy: { date: 'desc' },
+        skip,
+        take: Number(limit),
+      }),
+      prisma.transaction.count({ where }),
     ]);
 
     res.json({ success: true, transactions, total, page: Number(page) });
@@ -34,10 +30,6 @@ router.get('/transactions', protect, async (req, res, next) => {
   }
 });
 
-/**
- * POST /api/finance/transactions
- * Create a transaction.
- */
 router.post('/transactions', protect, async (req, res, next) => {
   try {
     const { type, amount, category, description, date } = req.body;
@@ -60,14 +52,16 @@ router.post('/transactions', protect, async (req, res, next) => {
 
     const monthStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}`;
 
-    const tx = await Transaction.create({
-      user: req.user._id,
-      type,
-      amount: parsedAmount,
-      category: category.trim(),
-      description: (description || '').trim().slice(0, 500),
-      date: txDate,
-      month: monthStr,
+    const tx = await prisma.transaction.create({
+      data: {
+        userId: req.user.id,
+        type,
+        amount: parsedAmount,
+        category: category.trim(),
+        description: (description || '').trim().slice(0, 500),
+        date: txDate,
+        month: monthStr,
+      },
     });
 
     res.status(201).json({ success: true, transaction: tx });
@@ -76,64 +70,60 @@ router.post('/transactions', protect, async (req, res, next) => {
   }
 });
 
-/**
- * PUT /api/finance/transactions/:id
- * Update a transaction (only the owner can update).
- */
 router.put('/transactions/:id', protect, async (req, res, next) => {
   try {
-    const { type, amount, category, description, date } = req.body;
-
-    const tx = await Transaction.findOne({ _id: req.params.id, user: req.user._id });
+    const tx = await prisma.transaction.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!tx) return res.status(404).json({ success: false, message: 'Transaction not found' });
 
-    if (type && ['income', 'expense'].includes(type)) tx.type = type;
+    const data = {};
+    const { type, amount, category, description, date } = req.body;
+
+    if (type && ['income', 'expense'].includes(type)) data.type = type;
     if (amount !== undefined) {
       const parsed = parseFloat(amount);
       if (!parsed || parsed <= 0) return res.status(400).json({ success: false, message: 'Amount must be positive' });
-      tx.amount = parsed;
+      data.amount = parsed;
     }
-    if (category) tx.category = category.trim();
-    if (description !== undefined) tx.description = description.trim().slice(0, 500);
+    if (category) data.category = category.trim();
+    if (description !== undefined) data.description = description.trim().slice(0, 500);
     if (date) {
       const d = new Date(date);
       if (isNaN(d.getTime())) return res.status(400).json({ success: false, message: 'Invalid date' });
-      tx.date = d;
-      tx.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      data.date = d;
+      data.month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
 
-    await tx.save();
-    res.json({ success: true, transaction: tx });
+    const updated = await prisma.transaction.update({
+      where: { id: tx.id },
+      data,
+    });
+    res.json({ success: true, transaction: updated });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * DELETE /api/finance/transactions/:id
- */
 router.delete('/transactions/:id', protect, async (req, res, next) => {
   try {
-    const tx = await Transaction.findOneAndDelete({ _id: req.params.id, user: req.user._id });
-    if (!tx) return res.status(404).json({ success: false, message: 'Transaction not found' });
+    const result = await prisma.transaction.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) return res.status(404).json({ success: false, message: 'Transaction not found' });
     res.json({ success: true, message: 'Transaction deleted' });
   } catch (err) {
     next(err);
   }
 });
 
-/**
- * GET /api/finance/summary
- * Returns income, expenses, balance, and category breakdown for a given month.
- * Uses code-based aggregation — never AI-invented totals.
- */
 router.get('/summary', protect, async (req, res, next) => {
   try {
     const { month } = req.query;
-    const filter = { user: req.user._id };
-    if (month) filter.month = month;
+    const where = { userId: req.user.id };
+    if (month) where.month = month;
 
-    const transactions = await Transaction.find(filter).lean();
+    const transactions = await prisma.transaction.findMany({ where });
 
     let totalIncome = 0;
     let totalExpenses = 0;
@@ -169,23 +159,21 @@ router.get('/summary', protect, async (req, res, next) => {
   }
 });
 
-// ── BUDGET CONFIGURATION & ANALYTICS ─────────────────────────────────────────
-
-/**
- * GET /api/finance/budget-settings
- * Fetch monthly budget configuration for the user and month.
- */
 router.get('/budget-settings', protect, async (req, res, next) => {
   try {
     const { month } = req.query;
     const now = new Date();
     const targetMonth = month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    let budget = await MonthlyBudget.findOne({ user: req.user._id, month: targetMonth }).lean();
+    let budget = await prisma.monthlyBudget.findUnique({
+      where: { userId_month: { userId: req.user.id, month: targetMonth } },
+    });
 
     if (!budget) {
-      // Look for latest configured month to use as defaults
-      const latest = await MonthlyBudget.findOne({ user: req.user._id }).sort({ month: -1 }).lean();
+      const latest = await prisma.monthlyBudget.findFirst({
+        where: { userId: req.user.id },
+        orderBy: { month: 'desc' },
+      });
       budget = {
         month: targetMonth,
         monthlyIncome: latest ? latest.monthlyIncome : 0,
@@ -202,10 +190,6 @@ router.get('/budget-settings', protect, async (req, res, next) => {
   }
 });
 
-/**
- * POST /api/finance/budget-settings
- * Upsert monthly budget configuration for the specified month.
- */
 router.post('/budget-settings', protect, async (req, res, next) => {
   try {
     const { month, monthlyIncome, monthlyBudget, savingsGoal, categoryBudgets } = req.body;
@@ -226,18 +210,23 @@ router.post('/budget-settings', protect, async (req, res, next) => {
           }))
       : [];
 
-    const updated = await MonthlyBudget.findOneAndUpdate(
-      { user: req.user._id, month: targetMonth },
-      {
-        user: req.user._id,
+    const updated = await prisma.monthlyBudget.upsert({
+      where: { userId_month: { userId: req.user.id, month: targetMonth } },
+      update: {
+        monthlyIncome: parsedIncome,
+        monthlyBudget: parsedBudget,
+        savingsGoal: parsedGoal,
+        categoryBudgets: cleanCatBudgets,
+      },
+      create: {
+        userId: req.user.id,
         month: targetMonth,
         monthlyIncome: parsedIncome,
         monthlyBudget: parsedBudget,
         savingsGoal: parsedGoal,
         categoryBudgets: cleanCatBudgets,
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    });
 
     res.json({ success: true, budget: updated });
   } catch (err) {
@@ -245,10 +234,6 @@ router.post('/budget-settings', protect, async (req, res, next) => {
   }
 });
 
-/**
- * GET /api/finance/analytics
- * Comprehensive, verified financial analytics and insights engine.
- */
 router.get('/analytics', protect, async (req, res, next) => {
   try {
     const { month } = req.query;
@@ -257,14 +242,24 @@ router.get('/analytics', protect, async (req, res, next) => {
     const prevMonth = getPreviousMonth(targetMonth);
 
     const [currentTxs, prevTxs, budgetDoc] = await Promise.all([
-      Transaction.find({ user: req.user._id, month: targetMonth }).sort({ date: -1 }).lean(),
-      prevMonth ? Transaction.find({ user: req.user._id, month: prevMonth }).lean() : Promise.resolve([]),
-      MonthlyBudget.findOne({ user: req.user._id, month: targetMonth }).lean(),
+      prisma.transaction.findMany({
+        where: { userId: req.user.id, month: targetMonth },
+        orderBy: { date: 'desc' },
+      }),
+      prevMonth ? prisma.transaction.findMany({
+        where: { userId: req.user.id, month: prevMonth },
+      }) : Promise.resolve([]),
+      prisma.monthlyBudget.findUnique({
+        where: { userId_month: { userId: req.user.id, month: targetMonth } },
+      }),
     ]);
 
     let activeBudget = budgetDoc;
     if (!activeBudget) {
-      activeBudget = await MonthlyBudget.findOne({ user: req.user._id }).sort({ month: -1 }).lean();
+      activeBudget = await prisma.monthlyBudget.findFirst({
+        where: { userId: req.user.id },
+        orderBy: { month: 'desc' },
+      });
     }
 
     const analytics = computeFinancialAnalytics({
@@ -280,12 +275,12 @@ router.get('/analytics', protect, async (req, res, next) => {
   }
 });
 
-// ── SAVINGS GOALS ─────────────────────────────────────────────────────────────
-
 router.get('/goals', protect, async (req, res, next) => {
   try {
-    const goals = await SavingsGoal.find({ user: req.user._id }).sort({ createdAt: -1 }).lean();
-    // Compute progress percentage server-side for accuracy
+    const goals = await prisma.savingsGoal.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
     const goalsWithProgress = goals.map((g) => ({
       ...g,
       progressPct: g.targetAmount > 0 ? Math.min(100, Math.round((g.currentAmount / g.targetAmount) * 100)) : 0,
@@ -305,14 +300,16 @@ router.post('/goals', protect, async (req, res, next) => {
     const parsedTarget = parseFloat(targetAmount);
     if (!parsedTarget || parsedTarget < 1) return res.status(400).json({ success: false, message: 'Target amount must be at least 1' });
 
-    const goal = await SavingsGoal.create({
-      user: req.user._id,
-      name: name.trim().slice(0, 200),
-      targetAmount: parsedTarget,
-      currentAmount: Math.max(0, parseFloat(currentAmount) || 0),
-      monthlyContribution: Math.max(0, parseFloat(monthlyContribution) || 0),
-      targetDate: targetDate ? new Date(targetDate) : null,
-      notes: (notes || '').trim().slice(0, 1000),
+    const goal = await prisma.savingsGoal.create({
+      data: {
+        userId: req.user.id,
+        name: name.trim().slice(0, 200),
+        targetAmount: parsedTarget,
+        currentAmount: Math.max(0, parseFloat(currentAmount) || 0),
+        monthlyContribution: Math.max(0, parseFloat(monthlyContribution) || 0),
+        targetDate: targetDate ? new Date(targetDate) : null,
+        notes: (notes || '').trim().slice(0, 1000),
+      },
     });
 
     res.status(201).json({ success: true, goal });
@@ -323,23 +320,34 @@ router.post('/goals', protect, async (req, res, next) => {
 
 router.put('/goals/:id', protect, async (req, res, next) => {
   try {
-    const goal = await SavingsGoal.findOne({ _id: req.params.id, user: req.user._id });
+    const goal = await prisma.savingsGoal.findFirst({
+      where: { id: req.params.id, userId: req.user.id },
+    });
     if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
 
+    const data = {};
     const { name, targetAmount, currentAmount, monthlyContribution, targetDate, notes, isCompleted } = req.body;
-    if (name !== undefined) goal.name = name.trim().slice(0, 200);
-    if (targetAmount !== undefined) goal.targetAmount = Math.max(1, parseFloat(targetAmount) || 1);
-    if (currentAmount !== undefined) goal.currentAmount = Math.max(0, parseFloat(currentAmount) || 0);
-    if (monthlyContribution !== undefined) goal.monthlyContribution = Math.max(0, parseFloat(monthlyContribution) || 0);
-    if (targetDate !== undefined) goal.targetDate = targetDate ? new Date(targetDate) : null;
-    if (notes !== undefined) goal.notes = notes.trim().slice(0, 1000);
-    if (isCompleted !== undefined) goal.isCompleted = Boolean(isCompleted);
+    if (name !== undefined) data.name = name.trim().slice(0, 200);
+    if (targetAmount !== undefined) data.targetAmount = Math.max(1, parseFloat(targetAmount) || 1);
+    if (currentAmount !== undefined) data.currentAmount = Math.max(0, parseFloat(currentAmount) || 0);
+    if (monthlyContribution !== undefined) data.monthlyContribution = Math.max(0, parseFloat(monthlyContribution) || 0);
+    if (targetDate !== undefined) data.targetDate = targetDate ? new Date(targetDate) : null;
+    if (notes !== undefined) data.notes = notes.trim().slice(0, 1000);
+    if (isCompleted !== undefined) data.isCompleted = Boolean(isCompleted);
 
-    // Auto-mark complete if current >= target
-    if (goal.currentAmount >= goal.targetAmount) goal.isCompleted = true;
+    if (data.currentAmount !== undefined) {
+      if (data.currentAmount >= (data.targetAmount !== undefined ? data.targetAmount : goal.targetAmount)) {
+        data.isCompleted = true;
+      }
+    } else if (goal.currentAmount >= (data.targetAmount !== undefined ? data.targetAmount : goal.targetAmount)) {
+      data.isCompleted = true;
+    }
 
-    await goal.save();
-    res.json({ success: true, goal });
+    const updated = await prisma.savingsGoal.update({
+      where: { id: goal.id },
+      data,
+    });
+    res.json({ success: true, goal: updated });
   } catch (err) {
     next(err);
   }
@@ -347,8 +355,10 @@ router.put('/goals/:id', protect, async (req, res, next) => {
 
 router.delete('/goals/:id', protect, async (req, res, next) => {
   try {
-    const goal = await SavingsGoal.findOneAndDelete({ _id: req.params.id, user: req.user._id });
-    if (!goal) return res.status(404).json({ success: false, message: 'Goal not found' });
+    const result = await prisma.savingsGoal.deleteMany({
+      where: { id: req.params.id, userId: req.user.id },
+    });
+    if (result.count === 0) return res.status(404).json({ success: false, message: 'Goal not found' });
     res.json({ success: true, message: 'Goal deleted' });
   } catch (err) {
     next(err);

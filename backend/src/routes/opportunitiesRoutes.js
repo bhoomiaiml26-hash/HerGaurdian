@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import express from 'express';
 import protect from '../middleware/auth.js';
-import OpportunityPreference from '../models/OpportunityPreference.js';
+import prisma from '../lib/prisma.js';
 import { ensureCitySearchFresh, refreshPopularCitySearches } from '../services/opportunities/citySearch.js';
 import { searchOpportunities } from '../services/opportunities/search.js';
 import { parseLocation } from '../services/opportunities/cityUtils.js';
@@ -22,7 +22,10 @@ router.get('/', protect, async (req, res, next) => {
     const { q, location, workMode, level, region, sort, page, limit } = req.query;
     const requestedLocation = String(location || '').trim().slice(0, 160);
     const parsed = parseLocation(requestedLocation, req.query.country);
-    const preferences = await OpportunityPreference.findOne({ user: req.user._id }).select('roles').lean();
+    const preferences = await prisma.opportunityPreference.findUnique({
+      where: { userId: req.user.id },
+      select: { roles: true },
+    });
     const role = String(q || '').trim().slice(0, 160) || (preferences?.roles || []).join(' OR ');
     const normalizedWorkMode = parsed.isRemote ? 'remote' : workMode && ALLOWED_WORK_MODES.has(workMode) ? workMode : '';
     let cacheResult = null;
@@ -35,7 +38,7 @@ router.get('/', protect, async (req, res, next) => {
       });
     }
     const result = await searchOpportunities({
-      userId: req.user._id,
+      userId: req.user.id,
       cacheResult,
       params: {
         q: role,
@@ -58,7 +61,9 @@ router.get('/', protect, async (req, res, next) => {
 
 router.get('/preferences', protect, async (req, res, next) => {
   try {
-    const preferences = await OpportunityPreference.findOne({ user: req.user._id }).lean();
+    const preferences = await prisma.opportunityPreference.findUnique({
+      where: { userId: req.user.id },
+    });
     res.json({
       success: true,
       preferences: preferences || {
@@ -77,11 +82,12 @@ router.put('/preferences', protect, async (req, res, next) => {
       if (req.body[key] !== undefined) changes[key] = cleanArray(req.body[key], key);
     });
     if (req.body.includeGlobal !== undefined) changes.includeGlobal = req.body.includeGlobal !== false;
-    const preferences = await OpportunityPreference.findOneAndUpdate(
-      { user: req.user._id },
-      { $set: changes, $setOnInsert: { user: req.user._id } },
-      { upsert: true, new: true, runValidators: true }
-    ).lean();
+
+    const preferences = await prisma.opportunityPreference.upsert({
+      where: { userId: req.user.id },
+      update: changes,
+      create: { userId: req.user.id, ...changes },
+    });
     res.json({ success: true, preferences });
   } catch (err) {
     next(err);

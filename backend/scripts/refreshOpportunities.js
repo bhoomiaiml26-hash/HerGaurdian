@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { connectDB, disconnectDB } from '../src/config/db.js';
 import { ingestOpportunities } from '../src/services/opportunities/ingest.js';
@@ -21,5 +20,5 @@ try {
   console.error(`Opportunity ingestion failed: ${error.message}`);
   process.exitCode = 1;
 } finally {
-  if (mongoose.connection.readyState !== 0) await disconnectDB();
+  await disconnectDB();
 }
