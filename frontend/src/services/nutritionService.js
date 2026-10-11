@@ -9,13 +9,16 @@
  * on the Flask server.
  */
 
+const CONFIGURED_URL = import.meta.env.VITE_NUTRIBOT_API_BASE_URL;
+const IS_PROD = import.meta.env.PROD;
+
 const BASE_URL = (
-  import.meta.env.VITE_NUTRIBOT_API_BASE_URL || "http://localhost:5001"
+  CONFIGURED_URL || (IS_PROD ? "" : "http://localhost:5001")
 ).replace(/\/+$/, "");
 
-if (!import.meta.env.VITE_NUTRIBOT_API_BASE_URL) {
+if (!CONFIGURED_URL && !IS_PROD) {
   console.warn(
-    "VITE_NUTRIBOT_API_BASE_URL is not set — Nutrition AI defaults to http://localhost:5001"
+    "VITE_NUTRIBOT_API_BASE_URL is not set — Nutrition AI defaults to http://localhost:5001 in development."
   );
 }
 
@@ -48,6 +51,13 @@ function toFriendlyError(error) {
 }
 
 async function request(path, { method = "POST", body, timeout = DEFAULT_TIMEOUT_MS } = {}) {
+  if (!CONFIGURED_URL && IS_PROD) {
+    throw new NutritionApiError(
+      "Nutrition AI service URL is not configured. Please set VITE_NUTRIBOT_API_BASE_URL in your Vercel project environment variables.",
+      { code: "unconfigured" }
+    );
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
@@ -88,6 +98,9 @@ async function request(path, { method = "POST", body, timeout = DEFAULT_TIMEOUT_
 // ── Health ───────────────────────────────────────────────────────────────────
 
 export async function getNutritionHealth() {
+  if (!CONFIGURED_URL && IS_PROD) {
+    return { status: "unconfigured", watsonx_configured: false };
+  }
   return request("/api/health", { method: "GET", timeout: 10000 });
 }
 
