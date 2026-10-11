@@ -28,27 +28,63 @@ dotenv.config();
 
 const app = express();
 
-app.use(helmet());
 const defaultOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
+  'https://her-gaurdian-self.vercel.app',
 ];
-const envOrigins = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(o => o.trim()) : [];
-const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+
+const envOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(',').map((o) => o.trim().replace(/\/+$/, ''))
+  : [];
+
+const allowedOrigins = new Set([
+  ...defaultOrigins.map((o) => o.replace(/\/+$/, '')),
+  ...envOrigins,
+]);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. curl, Postman, server-to-server)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS: origin ${origin} not allowed`));
+    // Allow requests with no origin (e.g. curl, Postman, server-to-server, mobile apps)
+    if (!origin) {
+      return callback(null, true);
     }
+
+    const cleanOrigin = origin.replace(/\/+$/, '');
+
+    // Allow exact matches from allowedOrigins
+    if (allowedOrigins.has(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // Allow any Vercel deployment preview / production domain for HerGuardian
+    if (/^https:\/\/([a-zA-Z0-9_-]+\.)?vercel\.app$/.test(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // If FRONTEND_URL is set to '*', allow all
+    if (process.env.FRONTEND_URL === '*') {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
   },
-  optionsSuccessStatus: 200
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200,
 };
+
+// Enable CORS for all routes and preflight requests
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev', { skip: (req) => req.path.startsWith('/api/opportunities') }));

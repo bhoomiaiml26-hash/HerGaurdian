@@ -39,22 +39,32 @@ DEFAULT_CORS_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:5175",
+    "https://her-gaurdian-self.vercel.app",
 ]
 
 
-def _allowed_origins():
+def _is_origin_allowed(origin: str) -> bool:
+    if not origin:
+        return False
+    clean = origin.rstrip("/")
+    if clean in DEFAULT_CORS_ORIGINS:
+        return True
     env_origins = [
-        o.strip()
+        o.strip().rstrip("/")
         for o in os.getenv("CORS_ORIGINS", "").split(",")
         if o.strip()
     ]
-    return list(dict.fromkeys(DEFAULT_CORS_ORIGINS + env_origins))
+    if clean in env_origins or "*" in env_origins:
+        return True
+    if clean.endswith(".vercel.app"):
+        return True
+    return False
 
 
 @app.after_request
 def add_cors_headers(response: Response) -> Response:
     origin = request.headers.get("Origin")
-    if origin and origin in _allowed_origins():
+    if origin and _is_origin_allowed(origin):
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
