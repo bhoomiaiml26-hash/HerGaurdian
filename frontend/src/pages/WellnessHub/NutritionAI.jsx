@@ -113,17 +113,15 @@ function NutritionAI() {
 
   const statusInfo = {
     checking: { icon: Wifi, text: "Checking AI service…", cls: "nb-soft" },
-    ok: { icon: Wifi, text: "Watsonx.ai connected", cls: "text-[#286646]" },
+    ok: { icon: Wifi, text: "NutriBot AI connected", cls: "text-[#286646]" },
     unconfigured: {
       icon: WifiOff,
-      text: !import.meta.env.VITE_NUTRIBOT_API_BASE_URL && import.meta.env.PROD
-        ? "Nutrition service URL not set — configure VITE_NUTRIBOT_API_BASE_URL in Vercel"
-        : "Watsonx.ai not configured — check service .env",
+      text: "AI service not configured — verify GEMINI_API_KEY",
       cls: "text-[#a85c12]",
     },
     offline: {
       icon: WifiOff,
-      text: "Nutrition service offline — start it to chat",
+      text: "Nutrition service reconnecting…",
       cls: "text-[#ba2626]",
     },
   }[serviceStatus] || { icon: WifiOff, text: "Service offline", cls: "text-[#ba2626]" };

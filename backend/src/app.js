@@ -22,6 +22,7 @@ import supportCaseRoutes from './routes/supportCaseRoutes.js';
 import documentDraftRoutes from './routes/documentDraftRoutes.js';
 import wellnessRoutes from './routes/wellnessRoutes.js';
 import opportunitiesRoutes from './routes/opportunitiesRoutes.js';
+import nutritionRoutes from './routes/nutritionRoutes.js';
 import errorHandler from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -119,6 +120,8 @@ app.use('/api/community', communityRoutes);
 app.use('/api/support-cases', supportCaseRoutes);
 app.use('/api/drafts', documentDraftRoutes);
 app.use('/api/wellness', wellnessRoutes);
+app.use('/api/nutrition', nutritionRoutes);
+app.use('/nutrition', nutritionRoutes);
 
 app.use(errorHandler);
 
