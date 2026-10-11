@@ -28,6 +28,9 @@ dotenv.config();
 
 const app = express();
 
+// Trust reverse proxy (Railway, Render, etc.) for correct client IP and X-Forwarded-For headers
+app.set('trust proxy', 1);
+
 const defaultOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -94,6 +97,7 @@ const limiter = rateLimit({
   max: process.env.NODE_ENV === 'production' ? 100 : 5000,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 app.use(limiter);
 
