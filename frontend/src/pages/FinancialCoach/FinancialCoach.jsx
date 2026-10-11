@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Wallet, LayoutDashboard, PiggyBank, BookOpen,
@@ -151,6 +151,10 @@ function DashboardTab() {
       setLoading(false);
     }
   }, [month]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) return <LoadingSpinner label="Loading your financial data…" />;
 
@@ -318,6 +322,10 @@ function BudgetTab() {
     }
   }, [month, filterType, filterCategory]);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   // Create Transaction
   const handleCreateTx = async (e) => {
     e.preventDefault();
@@ -365,7 +373,7 @@ function BudgetTab() {
     }
     setSavingTx(true);
     try {
-      await updateTransaction(editingTx._id, txForm);
+      await updateTransaction(editingTx.id || editingTx._id, txForm);
       toast.success("Transaction updated!");
       setEditingTx(null);
       setTxForm({
@@ -908,53 +916,56 @@ function BudgetTab() {
               <EmptyState icon={Wallet} message="No transactions match your current filters. Add one above." />
             ) : (
               <div className="divide-y rounded-xl border overflow-hidden" style={{ borderColor: C.border }}>
-                {txs.map((tx) => (
-                  <div key={tx._id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAFAFA] transition-colors">
-                    <div
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                      style={{ background: tx.type === "income" ? C.successBg : C.dangerBg }}
-                    >
-                      {tx.type === "income" ? (
-                        <TrendingUp className="h-4 w-4" style={{ color: C.incomeGreen }} />
-                      ) : (
-                        <TrendingDown className="h-4 w-4" style={{ color: C.expenseRed }} />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium" style={{ color: C.ink }}>{tx.category}</p>
-                      {tx.description && <p className="truncate text-xs" style={{ color: C.faint }}>{tx.description}</p>}
-                      <p className="text-xs" style={{ color: C.faint }}>
-                        {new Date(tx.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
-                    </div>
-                    <span
-                      className="shrink-0 text-sm font-bold"
-                      style={{ color: tx.type === "income" ? C.incomeGreen : C.expenseRed }}
-                    >
-                      {tx.type === "income" ? "+" : "−"}{fmt(tx.amount)}
-                    </span>
+                {txs.map((tx) => {
+                  const txId = tx.id || tx._id;
+                  return (
+                    <div key={txId} className="flex items-center gap-3 px-4 py-3 hover:bg-[#FAFAFA] transition-colors">
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                        style={{ background: tx.type === "income" ? C.successBg : C.dangerBg }}
+                      >
+                        {tx.type === "income" ? (
+                          <TrendingUp className="h-4 w-4" style={{ color: C.incomeGreen }} />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" style={{ color: C.expenseRed }} />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium" style={{ color: C.ink }}>{tx.category}</p>
+                        {tx.description && <p className="truncate text-xs" style={{ color: C.faint }}>{tx.description}</p>}
+                        <p className="text-xs" style={{ color: C.faint }}>
+                          {new Date(tx.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
+                      </div>
+                      <span
+                        className="shrink-0 text-sm font-bold"
+                        style={{ color: tx.type === "income" ? C.incomeGreen : C.expenseRed }}
+                      >
+                        {tx.type === "income" ? "+" : "−"}{fmt(tx.amount)}
+                      </span>
 
-                    {/* Edit & Delete Buttons */}
-                    <div className="flex items-center gap-1 ml-2">
-                      <button
-                        onClick={() => handleOpenEdit(tx)}
-                        className="rounded-lg p-1.5 transition hover:bg-gray-100"
-                        style={{ color: C.muted }}
-                        title="Edit Transaction"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTx(tx._id)}
-                        className="rounded-lg p-1.5 transition hover:bg-red-50 hover:text-red-600"
-                        style={{ color: C.faint }}
-                        title="Delete Transaction"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {/* Edit & Delete Buttons */}
+                      <div className="flex items-center gap-1 ml-2">
+                        <button
+                          onClick={() => handleOpenEdit(tx)}
+                          className="rounded-lg p-1.5 transition hover:bg-gray-100"
+                          style={{ color: C.muted }}
+                          title="Edit Transaction"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTx(txId)}
+                          className="rounded-lg p-1.5 transition hover:bg-red-50 hover:text-red-600"
+                          style={{ color: C.faint }}
+                          title="Delete Transaction"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1223,6 +1234,10 @@ function SavingsTab() {
     finally { setLoading(false); }
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.targetAmount) return toast.error("Name and target amount are required.");
@@ -1242,7 +1257,7 @@ function SavingsTab() {
     const g = editGoal;
     const newAmt = g.currentAmount + parseFloat(depositAmt);
     try {
-      await updateSavingsGoal(g._id, { currentAmount: newAmt });
+      await updateSavingsGoal(g.id || g._id, { currentAmount: newAmt });
       toast.success("Progress updated!");
       setEditGoal(null);
       setDepositAmt("");
@@ -1336,8 +1351,9 @@ function SavingsTab() {
             {goals.map(g => {
               const pct = g.progressPct ?? 0;
               const complete = g.isCompleted;
+              const goalId = g.id || g._id;
               return (
-                <div key={g._id} className="rounded-xl border p-5 flex flex-col gap-3"
+                <div key={goalId} className="rounded-xl border p-5 flex flex-col gap-3"
                   style={{ borderColor: complete ? C.incomeGreen : C.border, background: complete ? "#F0FFF4" : C.brandLight }}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1352,7 +1368,7 @@ function SavingsTab() {
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      <button onClick={() => handleDelete(g._id)}
+                      <button onClick={() => handleDelete(goalId)}
                         className="rounded-lg p-1.5 transition hover:opacity-70"
                         style={{ color: C.faint }} title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
