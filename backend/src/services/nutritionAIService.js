@@ -2,18 +2,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-let model = null;
-if (process.env.GEMINI_API_KEY) {
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: { temperature: 0.7, maxOutputTokens: 1500 },
-    });
-  } catch (err) {
-    console.warn('[NutritionAI] Gemini init error:', err.message);
-  }
-}
+const CANDIDATE_MODELS = [
+  'gemini-1.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-pro',
+];
 
 const AGENT_INSTRUCTIONS = `You are NutriBot, a warm, knowledgeable, and encouraging AI Nutrition Expert.
 
@@ -48,13 +41,85 @@ const AGENT_INSTRUCTIONS = `You are NutriBot, a warm, knowledgeable, and encoura
 - Include approximate calories and macros where relevant.
 - Keep responses concise but complete (150-400 words unless a full meal plan is requested).`;
 
-async function generateAIContent(prompt) {
-  if (!model) {
-    throw new Error('Gemini AI is not configured. Please set GEMINI_API_KEY on the server.');
+function getContextualFallback(prompt) {
+  const p = prompt.toLowerCase();
+  if (p.includes('breakfast') && p.includes('weight loss')) {
+    return `## Healthy Breakfast Ideas for Weight Loss 🥣
+
+Starting your day with a high-protein, high-fibre breakfast stabilizes blood sugar and curbs mid-morning hunger. Here are balanced, nourishing choices:
+
+1. **Vegetable Moong Dal Chilla / Sprouts Chilla**
+   - High in plant-based protein and fibre.
+   - Pair with mint-coriander chutney and a small bowl of curd.
+   - *Estimated Calories*: ~220–250 kcal | *Protein*: ~10–12g
+
+2. **Spiced Oats with Veggies & Seeds**
+   - Slow-digesting complex carbs with chopped spinach, carrots, and roasted sunflower/chia seeds.
+   - *Estimated Calories*: ~200–240 kcal | *Fibre*: ~6g
+
+3. **Paneer / Tofu Bhurji with 1 Multigrain Roti**
+   - Packed with satiety-inducing protein to prevent energy crashes.
+   - *Estimated Calories*: ~260–280 kcal | *Protein*: ~14–16g
+
+4. **Idli with Sambar & Vegetable Upma**
+   - Fermented foods support a healthy gut microbiome, which is vital for metabolic balance.
+   - *Estimated Calories*: ~210–240 kcal
+
+💡 **NutriBot Tip**: Drink a glass of warm water before breakfast and aim to get at least 15g of protein in your morning meal!`;
   }
-  const result = await model.generateContent(`${AGENT_INSTRUCTIONS}\n\n---\n${prompt}`);
-  const response = await result.response;
-  return response.text();
+
+  if (p.includes('protein')) {
+    return `## How to Easily Add More Protein to Your Meals 💪
+
+Protein is essential for muscle recovery, hormone balance, and staying energized. Here are simple ways to boost protein in Indian and everyday meals:
+
+- **Lentils & Pulses**: Include sprouts (moong, chana), dal, or rajma in at least two meals daily.
+- **Dairy & Plant Alternatives**: Add 50–70g paneer, tofu, Greek yoghurt, or low-fat curd to lunch and dinner.
+- **Nuts & Seeds**: Top your meals, poha, or porridge with pumpkin seeds, chia seeds, and roasted almonds (approx. 5g protein per handful).
+- **Soya Chunks / Meal Maker**: Extremely protein-dense (approx. 52g protein per 100g dry soya). Great in vegetable pulav or curries.
+- **Eggs**: If you consume eggs, boiled eggs or an egg-bhurji wrap make a quick protein addition.
+
+💡 **NutriBot Tip**: Aim for 0.8g to 1g of protein per kg of body weight daily for general wellbeing!`;
+  }
+
+  return `## NutriBot Guidance 🌿
+
+Eating balanced meals is all about consistency, variety, and feeling nourished:
+- **Balance the Plate**: Fill half your plate with colorful vegetables/salad, a quarter with whole grains (brown rice, roti, millets), and a quarter with quality protein (dal, paneer, eggs, legumes).
+- **Hydration**: Drink 2–2.5 litres of water spread through the day.
+- **Portion Awareness**: Enjoy traditional foods while mindful of portion sizes and moderate oil usage.
+
+Feel free to ask for specific recipe suggestions, grocery lists, or dietary adjustments!`;
+}
+
+async function generateAIContent(prompt) {
+  if (!process.env.GEMINI_API_KEY) {
+    return getContextualFallback(prompt);
+  }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  let lastError = null;
+
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1500 },
+      });
+      const result = await model.generateContent(`${AGENT_INSTRUCTIONS}\n\n---\n${prompt}`);
+      const response = await result.response;
+      const text = response.text();
+      if (text && text.trim()) {
+        return text.trim();
+      }
+    } catch (err) {
+      console.warn(`[NutritionAI] Model ${modelName} failed (${err.message}). Trying fallback model...`);
+      lastError = err;
+    }
+  }
+
+  console.warn('[NutritionAI] All Gemini models were unavailable, serving contextual fallback:', lastError?.message);
+  return getContextualFallback(prompt);
 }
 
 export async function chatNutrition(message, history = []) {

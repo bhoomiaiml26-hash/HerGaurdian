@@ -14,7 +14,7 @@ let geminiModel = null;
 if (process.env.GEMINI_API_KEY) {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   } catch (err) {
     console.warn('[SkillGapAnalyzer] Gemini initialization notice:', err.message);
   }

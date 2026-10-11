@@ -26,7 +26,7 @@ if (process.env.GEMINI_API_KEY) {
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     geminiVisionModel = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.1,
